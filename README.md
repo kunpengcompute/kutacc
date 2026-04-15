@@ -2,7 +2,7 @@
 
 ## 🔥Release Notes
 
-- [2026/04] KuTACC项目首次上线，支持AlphaFold2应用底层计算融合算子、通信融合算子。
+- [2026/03] KuTACC项目首次上线，支持AlphaFold2应用底层计算融合算子、通信融合算子。
 
 ## 🚀概述
 
@@ -10,15 +10,10 @@
 
 ## 📝版本配套
 
-硬件要求：
-| 设备类型    | 设备型号   |
-| :----      | :----     |
-| 服务器型号   | 920专业版  |
-
-推荐的操作系统列表：
-| 操作系统    | 推荐版本       |
-| :----      | :----         |
-| openEuler  | openEuler 22.03（LTS-SP4）AArch64  |
+- 运行平台
+    - 鲲鹏 920 专业版
+- 系统规格
+    - openEuler 22.03（LTS-SP4）AArch64
 
 ## ⚡️编译安装
 
@@ -40,12 +35,17 @@ sh HPCKit_26.0.RC1_Linux-aarch64/install.sh -y --prefix=[HPCKit安装目录]
 
 #### 3. [设置环境变量](https://www.hikunpeng.com/document/detail/zh/kunpenghpcs/hpckit/instg/KunpengHPCKit_install_014.html)
 
+##### 安装 Module 环境变量管理工具（需要已配置 yum 源）
+```
+yum install environment-modules
+```
+
 ##### 加载 module
 ```
 module use [HPCKit安装目录]/HPCKit/latest/modulefiles
 ```
 
-##### 加载编译器环境变量
+##### 加载编译器环境变量（编译器版本号根据实际情况调整）
 ```
 module load bisheng/compiler5.1.0.2/bishengmodule
 ```
@@ -58,7 +58,7 @@ module load bisheng/hmpi26.0.RC1/release
 export CPLUS_INCLUDE_PATH=[HPCKit安装目录]/HPCKit/latest/hmpi/bisheng/release/hmpi/include:${CPLUS_INCLUDE_PATH}
 ```
 
-#### 4. 安装编译所需依赖
+#### 4. 安装编译所需依赖（需要已配置 yum 源）
 
 安装 cmake
 ```
@@ -67,9 +67,26 @@ yum install cmake
 
 #### 5. 源码编译安装
 
-进入KuTACC项目源码根目录，可以使用build.sh将KuTACC安装在任意指定的路径下，同时支持release/debug模式的库安装。
-```shell
-sh build.sh --install_path=/path/to/your/kutacc-path --build_type=Release/Debug
+- 如果使用源码压缩包的代码下载方式
+##### 上传并解压 KuTACC 项目源码包（分支名根据实际情况调整）
+```
+unzip kutacc-main.zip
+```
+
+##### 进入KuTACC项目源码根目录（分支名根据实际情况调整）
+```
+cd kutacc-main
+```
+
+##### 编译安装
+可以使用build.sh将KuTACC安装在任意指定的路径下，支持Release或Debug模式的库安装。
+- Release模式：
+```
+sh build.sh --install_path=/path/to/your/kutacc-path --build_type=Release
+```
+- Debug模式：
+```
+sh build.sh --install_path=/path/to/your/kutacc-path --build_type=Debug
 ```
 
 ## 📖学习教程
@@ -108,5 +125,5 @@ sh build.sh --install_path=/path/to/your/kutacc-path --build_type=Release/Debug
 本项目功能和文档正在持续更新和完善中，建议您关注最新版本。
 
 - **问题反馈**：通过 [【Issues】](https://atomgit.com/kunpengcompute/kutacc/issues)提交问题。
-- **社区互动**：通过 [【讨论】](https://atomgit.com/kunpengcompute/kutacc/discussions)参与交流。
+- **社区互动**：通过 [【鲲鹏论坛（HPC专区）】](https://www.hikunpeng.com/forum/forum-0187135482144798003-1.html)参与交流。
 - **技术专栏**：通过 [【鲲鹏社区】](https://www.hikunpeng.com/developer/techArticles) 获取技术文章，如系列化教程、优秀实践等。

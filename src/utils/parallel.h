@@ -21,11 +21,11 @@
 
 namespace kutacc {
 namespace internal {
-    inline int64_t divup(int64_t x, int64_t y) 
-    {
-        return (x + y - 1) / y;
-    }
-}   // namespace internal
+inline int64_t divup(int64_t x, int64_t y)
+{
+    return (x + y - 1) / y;
+}
+} // namespace internal
 
 inline int64_t get_max_threads()
 {
@@ -89,6 +89,6 @@ inline void parallel_for(int64_t begin, int64_t end, int64_t grain_size, const F
 #endif
 }
 
-}   // namespace kutacc
+} // namespace kutacc
 
 #endif

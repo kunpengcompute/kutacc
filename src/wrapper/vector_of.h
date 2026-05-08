@@ -21,6 +21,6 @@
 namespace kutacc {
 template <typename scalar_t>
 using vector_of_t = decltype(svld1(svbool_t(), static_cast<const scalar_t *>(nullptr)));
-}   // namespace kutacc
+} // namespace kutacc
 
 #endif

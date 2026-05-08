@@ -16,10 +16,10 @@
 #include "utils/check.h"
 #include "wrapper/wrapper.h"
 
-namespace kutacc{
+namespace kutacc {
 template <typename scalar_t>
 inline void rigid_rot_vec_mul_kernel(scalar_t *pt, const float *rot_mat, scalar_t *out, const float *trans = nullptr,
-    bool invert = false)
+                                     bool invert = false)
 {
     float output[3];
     float input[3];
@@ -64,6 +64,6 @@ inline void rigid_rot_matmul_kernel(const float *a, const float *b, float *out)
         }
     }
 }
-}
+} // namespace kutacc
 
 #endif

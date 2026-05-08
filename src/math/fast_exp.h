@@ -22,8 +22,8 @@ inline svfloat32_t fast_exp(svbool_t pg, svfloat32_t values)
 {
     constexpr float exp_const = 92.33248f;  // 64 / ln(2)
     constexpr float ln_flt_max = 88.72284f; // ln_flt_max = ln(FLT_MAX) = ln(2 ** 128)
-    return svexpa(svcvt_u32_x(pg,
-        svrinta_x(pg, svmad_x(pg, svmin_x(pg, values, ln_flt_max), svdup_f32(exp_const), (float)(127 << 6)))));
+    return svexpa(svcvt_u32_x(
+        pg, svrinta_x(pg, svmad_x(pg, svmin_x(pg, values, ln_flt_max), svdup_f32(exp_const), (float)(127 << 6)))));
 }
 
 #else
@@ -31,12 +31,12 @@ inline svfloat32_t fast_exp(svbool_t pg, svfloat32_t values)
 {
     const float factorial_1 = 0.999999701f;
     const float factorial_2 = 0.499991506f;
-    const float factorial_3 = 0.166676521f;                                 // 1 / factorial(3)
-    const float factorial_4 = 0.0418978221f;                                // 1 / factorial(4)
-    const svfloat32_t vec_factorial_5 = svdup_f32(0.00828929059f);          // 1 / factorial(5)
-    const svfloat32_t vec_exp_log2ef = svdup_f32(1.4426951f);               //log2(e)
+    const float factorial_3 = 0.166676521f;                        // 1 / factorial(3)
+    const float factorial_4 = 0.0418978221f;                       // 1 / factorial(4)
+    const svfloat32_t vec_factorial_5 = svdup_f32(0.00828929059f); // 1 / factorial(5)
+    const svfloat32_t vec_exp_log2ef = svdup_f32(1.4426951f);      //log2(e)
     const svfloat32_t vec_zero = svdup_f32(0.f);
-    const svfloat32_t ln2f = svdup_f32(0.6931472f);                         // ln(2)
+    const svfloat32_t ln2f = svdup_f32(0.6931472f); // ln(2)
     const float vec_ln_flt_min = -87.33655;
     const float vec_ln_flt_max = 88.72284;
     const int exp_offset = 0x7f;
@@ -76,12 +76,12 @@ inline svfloat16_t fast_exp(svbool_t pg, svfloat16_t values)
 {
     const __fp16 factorial_1 = 0.999999701f;
     const __fp16 factorial_2 = 0.499991506f;
-    const __fp16 factorial_3 = 0.166676521f;                                 // 1 / factorial(3)
-    const __fp16 factorial_4 = 0.0418978221f;                                // 1 / factorial(4)
-    const svfloat16_t vec_factorial_5 = svdup_f16(0.00828929059f);          // 1 / factorial(5)
-    const svfloat16_t vec_exp_log2ef = svdup_f16(1.4426951f);               //log2(e)
+    const __fp16 factorial_3 = 0.166676521f;                       // 1 / factorial(3)
+    const __fp16 factorial_4 = 0.0418978221f;                      // 1 / factorial(4)
+    const svfloat16_t vec_factorial_5 = svdup_f16(0.00828929059f); // 1 / factorial(5)
+    const svfloat16_t vec_exp_log2ef = svdup_f16(1.4426951f);      //log2(e)
     const svfloat16_t vec_zero = svdup_f16(0.f);
-    const svfloat16_t vec_ln2f = svdup_f16(0.6931472f);                         // ln(2)
+    const svfloat16_t vec_ln2f = svdup_f16(0.6931472f); // ln(2)
     const __fp16 vec_ln_flt_min = -10.f;
     const __fp16 vec_ln_flt_max = 10.f;
     const int exp_offset = 0x4f;
@@ -118,5 +118,5 @@ inline svfloat16_t fast_exp(svbool_t pg, svfloat16_t values)
     return vec_res;
 }
 #endif
-}   // namespace kutacc
+} // namespace kutacc
 #endif

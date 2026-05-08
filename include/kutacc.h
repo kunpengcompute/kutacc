@@ -22,7 +22,7 @@ extern "C" {
 #endif
 
 /** @brief exposed KuTACC symbol table*/
-#define kutacc_export           __attribute__((visibility("default")))
+#define kutacc_export __attribute__((visibility("default")))
 
 /** @brief status in KuTACC library*/
 #define KUTACC_OK 0
@@ -38,15 +38,15 @@ typedef struct kutacc_version {
     const char *component_appendinfo;
 } kutacc_version_t;
 
-/* 
+/*
  * @brief get the kutacc version info
  * @param [out] version     the kutacc version info
- * 
+ *
  * @return KUTACC_OK for get version info success, other for failed.
  */
 kutacc_export int kutacc_get_version(kutacc_version_t *version);
 
-typedef void* kutacc_tensor_h;
+typedef void *kutacc_tensor_h;
 
 kutacc_export extern int64_t world_size;
 kutacc_export extern int64_t rank;
@@ -88,9 +88,9 @@ typedef struct kutacc_af2_attention_weights {
     kutacc_tensor_h output_b;
 } kutacc_af2_attention_weights_t;
 
-/** @brief used for gating_attention and global_attention op, 
-    it's a union of tensors which shapes like act param in alphafold.py 
-    and be used as input variables of the intermediate process 
+/** @brief used for gating_attention and global_attention op,
+    it's a union of tensors which shapes like act param in alphafold.py
+    and be used as input variables of the intermediate process
  */
 typedef struct kutacc_af2_attention_inputs {
     int64_t batch;
@@ -103,7 +103,7 @@ typedef struct kutacc_af2_attention_inputs {
     kutacc_tensor_h avg;
 } kutacc_af2_attention_inputs_t;
 
-/** @brief used for invariant point attention op, 
+/** @brief used for invariant point attention op,
     it's a union of weights params needed by ipa
  */
 typedef struct kutacc_af2_ipa_weights {
@@ -119,9 +119,9 @@ typedef struct kutacc_af2_ipa_weights {
     kutacc_tensor_h linear_b_b;
 } kutacc_af2_ipa_weights_t;
 
-/** @brief used for ipa op, 
-    it's a union of tensors which shapes like s param in alphafold.py 
-    and be used as input variables of the intermediate process 
+/** @brief used for ipa op,
+    it's a union of tensors which shapes like s param in alphafold.py
+    and be used as input variables of the intermediate process
  */
 typedef struct kutacc_af2_ipa_s_inputs {
     int64_t n_res;
@@ -136,9 +136,9 @@ typedef struct kutacc_af2_ipa_s_inputs {
     kutacc_tensor_h v_pts;
 } kutacc_af2_ipa_s_inputs_t;
 
-/** @brief used for ipa op, 
-    it's a union of tensors which shapes like o param from kpex 
-    and be used as input variables of the intermediate process 
+/** @brief used for ipa op,
+    it's a union of tensors which shapes like o param from kpex
+    and be used as input variables of the intermediate process
  */
 typedef struct kutacc_af2_ipa_o_inputs {
     kutacc_tensor_h o;
@@ -168,7 +168,7 @@ typedef struct kutacc_af2_tm_proj_weights {
 typedef struct kutacc_af2_tm_act_inputs {
     int64_t n_res;
     int64_t n_res_gather;
-    
+
     kutacc_tensor_h proj_act;
     kutacc_tensor_h input_act;
     kutacc_tensor_h proj_act_gate;
@@ -202,7 +202,7 @@ typedef struct kutacc_af2_trans_weights {
 } kutacc_af2_trans_weights_t;
 
 /** @brief used for transition op
-    it's a union of tensors which shape like act from alphafold.py 
+    it's a union of tensors which shape like act from alphafold.py
     and be used as inputs of transition op
  */
 typedef struct kutacc_af2_trans_act_inputs {
@@ -263,17 +263,21 @@ typedef struct kutacc_af2_opm_mask_inputs {
  * @param [in] c_i, c_m, n_res, n_res_gather, n_seq, mask_bias
  * @return Null
  */
-kutacc_export void kutacc_af2_outer_product_mean_calc_left_and_right_mul(kutacc_af2_opm_act_inputs_t *opm_acts_ptr, kutacc_af2_opm_mask_inputs_t *opm_masks_ptr, kutacc_af2_opm_weights_t *opm_weights_ptr);
+kutacc_export void kutacc_af2_outer_product_mean_calc_left_and_right_mul(kutacc_af2_opm_act_inputs_t *opm_acts_ptr,
+                                                                         kutacc_af2_opm_mask_inputs_t *opm_masks_ptr,
+                                                                         kutacc_af2_opm_weights_t *opm_weights_ptr);
 
 /**
  * @brief outer_product_mean_chunk algorithm
  * @param [out] output_b, output_w out
- * @param [in] left_proj_, right_proj_, norm, left_block_size, right_block_size, 
+ * @param [in] left_proj_, right_proj_, norm, left_block_size, right_block_size,
  * @param [in] c_i, c_z, n_res, n_res_gather, n_seq
  * @return Null
  */
-kutacc_export void kutacc_af2_outer_product_mean_chunk(kutacc_af2_opm_act_inputs_t *opm_acts_ptr, kutacc_af2_opm_mask_inputs_t *opm_masks_ptr, kutacc_af2_opm_weights_t *opm_weights_ptr,kutacc_tensor_h out,
-    int64_t left_block_size, int64_t right_block_size);
+kutacc_export void kutacc_af2_outer_product_mean_chunk(kutacc_af2_opm_act_inputs_t *opm_acts_ptr,
+                                                       kutacc_af2_opm_mask_inputs_t *opm_masks_ptr,
+                                                       kutacc_af2_opm_weights_t *opm_weights_ptr, kutacc_tensor_h out,
+                                                       int64_t left_block_size, int64_t right_block_size);
 
 /**
  * @brief gating_attention algorithm
@@ -288,16 +292,19 @@ kutacc_export void kutacc_af2_outer_product_mean_chunk(kutacc_af2_opm_act_inputs
  * @param [in] GatingAttentionWeight
  * @param [out] out
  * @return Null
- * constraint: nchannels = nheads * head_size 
+ * constraint: nchannels = nheads * head_size
  */
-kutacc_export void kutacc_af2_gating_attention(kutacc_tensor_h input, kutacc_af2_attention_inputs_t *q_based_ptr, kutacc_tensor_h bias, kutacc_tensor_h nonbatched_bias,
-    kutacc_af2_attention_weights_t *weight_ptr, kutacc_tensor_h out, int64_t block_size);
+kutacc_export void kutacc_af2_gating_attention(kutacc_tensor_h input, kutacc_af2_attention_inputs_t *q_based_ptr,
+                                               kutacc_tensor_h bias, kutacc_tensor_h nonbatched_bias,
+                                               kutacc_af2_attention_weights_t *weight_ptr, kutacc_tensor_h out,
+                                               int64_t block_size);
 /**
  * @param q_data shape [batch, seq_len, nchannels], bf16
  * @param q_mask shape [batch, seq_len, 1], bf16
  */
 kutacc_export void kutacc_af2_global_attention(kutacc_af2_attention_inputs_t *q_based_ptr, kutacc_tensor_h q_data,
-    kutacc_tensor_h q_mask, kutacc_af2_attention_weights_t *weight_ptr, kutacc_tensor_h out);
+                                               kutacc_tensor_h q_mask, kutacc_af2_attention_weights_t *weight_ptr,
+                                               kutacc_tensor_h out);
 
 /**
  * @brief transition algorithm
@@ -311,7 +318,8 @@ kutacc_export void kutacc_af2_global_attention(kutacc_af2_attention_inputs_t *q_
  * @param [out] out
  * @return Null
  */
-kutacc_export void kutacc_af2_transition(kutacc_af2_trans_act_inputs_t *trans_inputs_ptr, kutacc_af2_trans_weights_t *trans_weights_ptr, kutacc_tensor_h out);
+kutacc_export void kutacc_af2_transition(kutacc_af2_trans_act_inputs_t *trans_inputs_ptr,
+                                         kutacc_af2_trans_weights_t *trans_weights_ptr, kutacc_tensor_h out);
 
 /**
  * @brief af2_layernorm algorithm: layernorm interface for af2 model
@@ -356,8 +364,10 @@ kutacc_export void kutacc_af2_layernorm(__bf16 *data, float *gamma, float *beta,
  * @param [out] out
  * @return Null
  */
-kutacc_export void kutacc_af2_invariant_point(kutacc_af2_ipa_s_inputs_t *ipa_s_ptrs, kutacc_af2_ipa_o_inputs_t *ipa_o_ptrs, kutacc_tensor_h z, kutacc_tensor_h rigid_rot_mats, 
-    kutacc_tensor_h rigid_trans, kutacc_tensor_h mask, kutacc_af2_ipa_weights_t *ipa_weight_ptrs);
+kutacc_export void kutacc_af2_invariant_point(kutacc_af2_ipa_s_inputs_t *ipa_s_ptrs,
+                                              kutacc_af2_ipa_o_inputs_t *ipa_o_ptrs, kutacc_tensor_h z,
+                                              kutacc_tensor_h rigid_rot_mats, kutacc_tensor_h rigid_trans,
+                                              kutacc_tensor_h mask, kutacc_af2_ipa_weights_t *ipa_weight_ptrs);
 
 /**
  * @brief impl of rot_vec_mul
@@ -366,7 +376,8 @@ kutacc_export void kutacc_af2_invariant_point(kutacc_af2_ipa_s_inputs_t *ipa_s_p
  * @param trans shape [..., 3], bf16 / fp32
  * @return shape [..., 3], bf16 / fp32
  */
-kutacc_export void kutacc_af2_rigid_rot_vec_mul(kutacc_tensor_h pts, kutacc_tensor_h rot_mats, kutacc_tensor_h out, kutacc_tensor_h trans);
+kutacc_export void kutacc_af2_rigid_rot_vec_mul(kutacc_tensor_h pts, kutacc_tensor_h rot_mats, kutacc_tensor_h out,
+                                                kutacc_tensor_h trans);
 
 /**
  * @brief impl of rot_mat_mul
@@ -385,14 +396,16 @@ kutacc_export void kutacc_af2_rigid_rot_matmul(kutacc_tensor_h a, kutacc_tensor_
  * @param [in/out] result
  * @return Null
  */
-kutacc_export void kutacc_af2_linear(kutacc_tensor_h act, kutacc_tensor_h weight, float* bias_data, kutacc_tensor_h result, int64_t beta);
+kutacc_export void kutacc_af2_linear(kutacc_tensor_h act, kutacc_tensor_h weight, float *bias_data,
+                                     kutacc_tensor_h result, int64_t beta);
 
 /**
  * @brief gemm prepack for linear layer
  * @param weight shape [n, k]
  * @return result shape [len]
  */
-kutacc_export void kutacc_af2_linear_weight_prepack(const __bf16 *weight, __bf16 *result, int64_t n, int64_t k, int64_t ldb, int64_t num_threads = 0);
+kutacc_export void kutacc_af2_linear_weight_prepack(const __bf16 *weight, __bf16 *result, int64_t n, int64_t k,
+                                                    int64_t ldb, int64_t num_threads = 0);
 
 /**
  * @brief get pack size of A or B for linear layer
@@ -402,7 +415,7 @@ kutacc_export void kutacc_af2_linear_weight_prepack(const __bf16 *weight, __bf16
  * @param m,n,k A shape[m, k] B shape[k, n]
  * @return  size： m * k or k * n
  */
-kutacc_export size_t kutacc_af2_gemm_pack_get_size(char identifier, char transa, char transb, int m ,int n, int k);
+kutacc_export size_t kutacc_af2_gemm_pack_get_size(char identifier, char transa, char transb, int m, int n, int k);
 
 /**
  * @brief used for generate proj_act
@@ -410,22 +423,28 @@ kutacc_export size_t kutacc_af2_gemm_pack_get_size(char identifier, char transa,
  * @param mask shape [n_res, n_res_gather]
  * @param [out] proj_act
  */
-kutacc_export void kutacc_af2_triangle_multiplication_calc_proj(kutacc_af2_tm_act_inputs_t *tm_acts_ptr, kutacc_tensor_h mask, kutacc_af2_tm_proj_weights_t *tm_weights_ptr, bool input_prepack);
+kutacc_export void kutacc_af2_triangle_multiplication_calc_proj(kutacc_af2_tm_act_inputs_t *tm_acts_ptr,
+                                                                kutacc_tensor_h mask,
+                                                                kutacc_af2_tm_proj_weights_t *tm_weights_ptr,
+                                                                bool input_prepack);
 
 /**
  * @brief center_act = left_proj * right_proj
  * @param [in] left_proj_act, right_proj_act
  * @param [out] center_act
  */
-kutacc_export void kutacc_af2_triangle_multiplication_equation(kutacc_tensor_h center_act, kutacc_tensor_h left_proj_act, kutacc_tensor_h right_proj_act,
-    int64_t n_res_gather, bool is_incoming);
+kutacc_export void kutacc_af2_triangle_multiplication_equation(kutacc_tensor_h center_act,
+                                                               kutacc_tensor_h left_proj_act,
+                                                               kutacc_tensor_h right_proj_act, int64_t n_res_gather,
+                                                               bool is_incoming);
 
 /**
  * @brief gate = inpur_act * gating_w + gating_b & out = center_act * output_proj_w + output_proj_b
  * @param [in] input_act, center_act, gating_w, gating_b, output_proj_w, output_proj_b
- * @param [out] gate, out  
+ * @param [out] gate, out
  */
-kutacc_export void kutacc_af2_triangle_multiplication_gate_and_out_linear(kutacc_tensor_h gate, kutacc_tensor_h out, kutacc_af2_tm_act_inputs_t *tm_acts_ptr, kutacc_tensor_h center_act,
+kutacc_export void kutacc_af2_triangle_multiplication_gate_and_out_linear(
+    kutacc_tensor_h gate, kutacc_tensor_h out, kutacc_af2_tm_act_inputs_t *tm_acts_ptr, kutacc_tensor_h center_act,
     kutacc_af2_tm_linear_weights_t *tm_weights_ptr, bool input_prepack);
 
 /**
@@ -433,7 +452,8 @@ kutacc_export void kutacc_af2_triangle_multiplication_gate_and_out_linear(kutacc
  * @param [in] gate
  * @param [out] out
  */
-kutacc_export void kutacc_af2_triangle_multiplication_last(kutacc_tensor_h out, kutacc_tensor_h gate, int64_t n_res, int64_t n_res_gather, int64_t c_o);
+kutacc_export void kutacc_af2_triangle_multiplication_last(kutacc_tensor_h out, kutacc_tensor_h gate, int64_t n_res,
+                                                           int64_t n_res_gather, int64_t c_o);
 
 #ifdef __cplusplus
 }
@@ -441,7 +461,7 @@ kutacc_export void kutacc_af2_triangle_multiplication_last(kutacc_tensor_h out, 
 
 #ifdef __cplusplus
 namespace kutacc {
-/*! \enum DType 
+/*! \enum DType
  *  \brief datatype of tensor.
  */
 typedef enum TensorDataType {
@@ -466,9 +486,13 @@ private:
     kutacc_tensor_h tensor_;
 
 public:
-    TensorWrapper(void *data_ptr, std::vector<int64_t>&& sizes, std::vector<int64_t>&& strides, int64_t dim, DType dtype);
+    TensorWrapper(void *data_ptr, std::vector<int64_t> &&sizes, std::vector<int64_t> &&strides, int64_t dim,
+                  DType dtype);
     TensorWrapper();
-    kutacc_tensor_h get_tensor(){return tensor_;}
+    kutacc_tensor_h get_tensor()
+    {
+        return tensor_;
+    }
     ~TensorWrapper();
 };
 } // namespace kutacc

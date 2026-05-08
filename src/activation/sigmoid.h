@@ -46,6 +46,6 @@ public:
         return 1 / (exp_neg + 1);
     }
 };
-}   // namespace kutacc
+} // namespace kutacc
 
 #endif

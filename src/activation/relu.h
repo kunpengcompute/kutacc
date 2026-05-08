@@ -19,30 +19,30 @@
 #include "../wrapper/wrapper.h"
 
 namespace kutacc {
-    class ReLU {
-    public:
-        /**
+class ReLU {
+public:
+    /**
          * @brief Template function `call` can be instantiated as follows
          * 1. svfloat32_t call(svbool_t, svfloat32_t)
          * 2. svfloat16_t call(svbool_t, svfloat16_t)
-         */    
-        template <typename T>
-        static std::enable_if_t<std::is_same_v<T, svfloat32_t> || std::is_same_v<T, svfloat16_t>, T> call(svbool_t pg, T x)
-        {
-            return svmax_x(pg, x, 0);
-        }
+         */
+    template <typename T>
+    static std::enable_if_t<std::is_same_v<T, svfloat32_t> || std::is_same_v<T, svfloat16_t>, T> call(svbool_t pg, T x)
+    {
+        return svmax_x(pg, x, 0);
+    }
 
-        /**
+    /**
          * @brief Template function `call` can be instantiated as follows
          * 1. float call(float)
          * 2. __fp16 call(__fp16)
          */
-        template <typename T>
-        static std::enable_if_t<std::is_same_v<T, float> || std::is_same_v<T, __fp16>, T> call(T x)
-        {
-            return std::max(x, (T)0);
-        }
+    template <typename T>
+    static std::enable_if_t<std::is_same_v<T, float> || std::is_same_v<T, __fp16>, T> call(T x)
+    {
+        return std::max(x, (T)0);
     }
-}   // namespace kutacc
+}
+} // namespace kutacc
 
 #endif

@@ -21,13 +21,13 @@ struct scalar_of {};
 template <typename vector_t>
 using scalar_of_t = typename scalar_of<vector_t>::type;
 
-#define DEFINE_WRAPPER(nbits, short_scalar_t, scalar_t, vector_t)   \
-    template <>                                                     \
-    struct scalar_of<vector_t>{                                     \
-        using type = scalar_t;                                      \
+#define DEFINE_WRAPPER(nbits, short_scalar_t, scalar_t, vector_t) \
+    template <>                                                   \
+    struct scalar_of<vector_t> {                                  \
+        using type = scalar_t;                                    \
     };
 #include "wrapper-incl.h"
 #undef DEFINE_WRAPPER
-}   //  namespace kutacc
+} //  namespace kutacc
 
 #endif

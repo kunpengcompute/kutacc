@@ -18,42 +18,32 @@
 #include "utils/collapse.h"
 
 namespace kutacc {
-void transition_kernel(Tensor &input_act, const Tensor &linear1_w, Tensor &linear1_b,
-        Tensor &linear2_w, Tensor &linear2_b, Tensor &intermediate_act, Tensor &out, 
-        int64_t batch, int64_t n_res, int64_t c_o, int64_t c_i)
+void transition_kernel(Tensor &input_act, const Tensor &linear1_w, Tensor &linear1_b, Tensor &linear2_w,
+                       Tensor &linear2_b, Tensor &intermediate_act, Tensor &out, int64_t batch, int64_t n_res,
+                       int64_t c_o, int64_t c_i)
 {
-    KUTACC_CHECK(batch > 0 && n_res > 0  && c_o > 0 && c_i > 0 &&
-        batch <= INT64_MAX / n_res && c_o <= INT32_MAX && c_i <= INT32_MAX,
-        "input param <= 0 or overflow");
+    KUTACC_CHECK(batch > 0 && n_res > 0 && c_o > 0 && c_i > 0 && batch <= INT64_MAX / n_res && c_o <= INT32_MAX &&
+                     c_i <= INT32_MAX,
+                 "input param <= 0 or overflow");
     if (kutacc::kutacc_check_err_set == true) {
         return;
     }
-    addmm(
-        kutacc::to_bf16(1),
-        Tensor(input_act.data_ptr(), {batch * n_res, c_o}, {c_o, 1}, 2, kBF16),
-        Tensor(linear1_w.data_ptr(), {c_o, c_i}, {1, c_o}, 2, kBF16),
-        kutacc::to_bf16(0),
-        Tensor(intermediate_act.data_ptr(), {batch * n_res, c_i}, {c_i, 1}, 2, kBF16),
-        kutacc::BlasExtendParams{.prepack_b = true,
-            .row_bias = true,
-            .bias = linear1_b.data_ptr(),
-            .relu = true});
-    addmm(
-        kutacc::to_bf16(1), 
-        Tensor(intermediate_act.data_ptr(), {batch * n_res, c_i}, {c_i, 1}, 2, kBF16),
-        Tensor(linear2_w.data_ptr(), {c_i, c_o}, {1, c_i}, 2, kBF16),
-        kutacc::to_bf16(0),
-        Tensor(out.data_ptr(), {batch * n_res, c_o}, {c_o, 1}, 2, kBF16),
-        kutacc::BlasExtendParams{.prepack_b = true,
-            .row_bias = true,
-            .bias = linear2_b.data_ptr()}
-    );
+    addmm(kutacc::to_bf16(1), Tensor(input_act.data_ptr(), {batch * n_res, c_o}, {c_o, 1}, 2, kBF16),
+          Tensor(linear1_w.data_ptr(), {c_o, c_i}, {1, c_o}, 2, kBF16), kutacc::to_bf16(0),
+          Tensor(intermediate_act.data_ptr(), {batch * n_res, c_i}, {c_i, 1}, 2, kBF16),
+          kutacc::BlasExtendParams{.prepack_b = true, .row_bias = true, .bias = linear1_b.data_ptr(), .relu = true});
+    addmm(kutacc::to_bf16(1), Tensor(intermediate_act.data_ptr(), {batch * n_res, c_i}, {c_i, 1}, 2, kBF16),
+          Tensor(linear2_w.data_ptr(), {c_i, c_o}, {1, c_i}, 2, kBF16), kutacc::to_bf16(0),
+          Tensor(out.data_ptr(), {batch * n_res, c_o}, {c_o, 1}, 2, kBF16),
+          kutacc::BlasExtendParams{.prepack_b = true, .row_bias = true, .bias = linear2_b.data_ptr()});
 }
-}
+} // namespace kutacc
 
-kutacc_export void kutacc_af2_transition(kutacc_af2_trans_act_inputs_t *trans_inputs_ptr, kutacc_af2_trans_weights_t *trans_weights_ptr, kutacc_tensor_h out)
+kutacc_export void kutacc_af2_transition(kutacc_af2_trans_act_inputs_t *trans_inputs_ptr,
+                                         kutacc_af2_trans_weights_t *trans_weights_ptr, kutacc_tensor_h out)
 {
-    KUTACC_CHECK(trans_inputs_ptr != nullptr && trans_weights_ptr != nullptr && out != nullptr, "af2_transition: input args nullptr error\n");
+    KUTACC_CHECK(trans_inputs_ptr != nullptr && trans_weights_ptr != nullptr && out != nullptr,
+                 "af2_transition: input args nullptr error\n");
     if (kutacc::kutacc_check_err_set == true) {
         return;
     }
@@ -70,7 +60,8 @@ kutacc_export void kutacc_af2_transition(kutacc_af2_trans_act_inputs_t *trans_in
     int64_t c_o = trans_weights_ptr->c_o;
     int64_t c_i = trans_weights_ptr->c_i;
 
-    kutacc::transition_kernel(*kutacc::convertKutaccTensor(input_act), *kutacc::convertKutaccTensor(linear1_w), *kutacc::convertKutaccTensor(linear1_b), 
-        *kutacc::convertKutaccTensor(linear2_w), *kutacc::convertKutaccTensor(linear2_b), *kutacc::convertKutaccTensor(intermediate_act), *kutacc::convertKutaccTensor(out), 
-        batch, n_res, c_o, c_i);
+    kutacc::transition_kernel(*kutacc::convertKutaccTensor(input_act), *kutacc::convertKutaccTensor(linear1_w),
+                              *kutacc::convertKutaccTensor(linear1_b), *kutacc::convertKutaccTensor(linear2_w),
+                              *kutacc::convertKutaccTensor(linear2_b), *kutacc::convertKutaccTensor(intermediate_act),
+                              *kutacc::convertKutaccTensor(out), batch, n_res, c_o, c_i);
 }

@@ -17,7 +17,7 @@ print_help(){
     echo "Parameters:"
     echo "--compiler=[gcc[default]|clang]                           |   build with different compiler"
     echo "--cleanup=[off|on(default)]                               |   cleanup and install path before build"
-    echo "--build_kind=[src(default)|test|cida|fuzz]                |   build src or test or cida or fuzz suite"   
+    echo "--build_kind=[src(default)|test|cida|fuzz]                |   build src or test or cida or fuzz suite"
     echo "--build_type=[Release(default)|Debug|RelWithDebInfo]      |   build release or debug version"
     echo "--install_path=absolute_path                              |   an absolute path for creating install folder"
     echo "--help                                                    |   print this help message"

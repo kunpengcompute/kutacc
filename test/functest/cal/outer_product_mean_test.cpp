@@ -36,7 +36,7 @@ TEST(OuterProductMeanTest, calc_left_and_right_mul_nullptr1)
     };
     void *x_ptr = (void *)&x;
 
-   
+
     kutacc_af2_opm_act_inputs *inputs_ptr = (kutacc_af2_opm_act_inputs*)malloc(sizeof(kutacc_af2_opm_act_inputs));
     if (inputs_ptr != nullptr) {
         *inputs_ptr = (kutacc_af2_opm_act_inputs){.n_seq = 2, .n_res = 2, .input_act = x_ptr, .left_proj = x_ptr,
@@ -76,7 +76,7 @@ TEST(OuterProductMeanTest, calc_left_and_right_mul_nullptr2)
     };
     void *x_ptr = (void *)&x;
 
-   
+
     kutacc_af2_opm_act_inputs *inputs_ptr = (kutacc_af2_opm_act_inputs*)malloc(sizeof(kutacc_af2_opm_act_inputs));
     if (inputs_ptr != nullptr) {
         *inputs_ptr = (kutacc_af2_opm_act_inputs){.n_seq = 2, .n_res = 2, .input_act = x_ptr, .left_proj = x_ptr,
@@ -116,7 +116,7 @@ TEST(OuterProductMeanTest, calc_left_and_right_mul_nullptr3)
     };
     void *x_ptr = (void *)&x;
 
-   
+
     kutacc_af2_opm_act_inputs *inputs_ptr = (kutacc_af2_opm_act_inputs*)malloc(sizeof(kutacc_af2_opm_act_inputs));
     if (inputs_ptr != nullptr) {
         *inputs_ptr = (kutacc_af2_opm_act_inputs){.n_seq = 2, .n_res = 2, .input_act = x_ptr, .left_proj = x_ptr,
@@ -156,7 +156,7 @@ TEST(OuterProductMeanTest, chunk_nullptr_1)
     };
     void *x_ptr = (void *)&x;
 
-   
+
     kutacc_af2_opm_act_inputs *inputs_ptr = (kutacc_af2_opm_act_inputs*)malloc(sizeof(kutacc_af2_opm_act_inputs));
     if (inputs_ptr != nullptr) {
         *inputs_ptr = (kutacc_af2_opm_act_inputs){.n_seq = 2, .n_res = 2, .input_act = x_ptr, .left_proj = x_ptr,
@@ -196,7 +196,7 @@ TEST(OuterProductMeanTest, chunk_nullptr_2)
     };
     void *x_ptr = (void *)&x;
 
-   
+
     kutacc_af2_opm_act_inputs *inputs_ptr = (kutacc_af2_opm_act_inputs*)malloc(sizeof(kutacc_af2_opm_act_inputs));
     if (inputs_ptr != nullptr) {
         *inputs_ptr = (kutacc_af2_opm_act_inputs){.n_seq = 2, .n_res = 2, .input_act = x_ptr, .left_proj = x_ptr,
@@ -236,7 +236,7 @@ TEST(OuterProductMeanTest, chunk_nullptr_3)
     };
     void *x_ptr = (void *)&x;
 
-   
+
     kutacc_af2_opm_act_inputs *inputs_ptr = (kutacc_af2_opm_act_inputs*)malloc(sizeof(kutacc_af2_opm_act_inputs));
     if (inputs_ptr != nullptr) {
         *inputs_ptr = (kutacc_af2_opm_act_inputs){.n_seq = 2, .n_res = 2, .input_act = x_ptr, .left_proj = x_ptr,
@@ -276,7 +276,7 @@ TEST(OuterProductMeanTest, chunk_nullptr_4)
     };
     void *x_ptr = (void *)&x;
 
-   
+
     kutacc_af2_opm_act_inputs *inputs_ptr = (kutacc_af2_opm_act_inputs*)malloc(sizeof(kutacc_af2_opm_act_inputs));
     if (inputs_ptr != nullptr) {
         *inputs_ptr = (kutacc_af2_opm_act_inputs){.n_seq = 2, .n_res = 2, .input_act = x_ptr, .left_proj = x_ptr,
@@ -316,7 +316,7 @@ TEST(OuterProductMeanTest, chunk_negative_int_1)
     };
     void *x_ptr = (void *)&x;
 
-   
+
     kutacc_af2_opm_act_inputs *inputs_ptr = (kutacc_af2_opm_act_inputs*)malloc(sizeof(kutacc_af2_opm_act_inputs));
     if (inputs_ptr != nullptr) {
         *inputs_ptr = (kutacc_af2_opm_act_inputs){.n_seq = 2, .n_res = 2, .input_act = x_ptr, .left_proj = x_ptr,
@@ -356,7 +356,7 @@ TEST(OuterProductMeanTest, chunk_negative_int_2)
     };
     void *x_ptr = (void *)&x;
 
-   
+
     kutacc_af2_opm_act_inputs *inputs_ptr = (kutacc_af2_opm_act_inputs*)malloc(sizeof(kutacc_af2_opm_act_inputs));
     if (inputs_ptr != nullptr) {
         *inputs_ptr = (kutacc_af2_opm_act_inputs){.n_seq = 2, .n_res = 2, .input_act = x_ptr, .left_proj = x_ptr,

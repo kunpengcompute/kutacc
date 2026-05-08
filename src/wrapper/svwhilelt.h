@@ -21,19 +21,19 @@ svbool_t svwhilelt(int32_t a, int32_t b);
 template <typename scalar_t>
 svbool_t svwhilelt(int64_t a, int64_t b);
 
-#define DEFINE_WRAPPER(nbits, short_scalar_t, scalar_t, vector_t)                                       \
-    template <>                                                                                         \
-    inline __attribute__((__always_inline__)) svbool_t svwhilelt<scalar_t>(int32_t a, int32_t b)        \
-    {                                                                                                   \
-        return svwhilelt_b##nbits(a, b);                                                                \
-    }                                                                                                   \
-    template <>                                                                                         \
-    inline __attribute__((__always_inline__)) svbool_t svwhilelt<scalar_t>(int64_t a, int64_t b)        \
-    {                                                                                                   \
-        return svwhilelt_b##nbits(a, b);                                                                \
+#define DEFINE_WRAPPER(nbits, short_scalar_t, scalar_t, vector_t)                                \
+    template <>                                                                                  \
+    inline __attribute__((__always_inline__)) svbool_t svwhilelt<scalar_t>(int32_t a, int32_t b) \
+    {                                                                                            \
+        return svwhilelt_b##nbits(a, b);                                                         \
+    }                                                                                            \
+    template <>                                                                                  \
+    inline __attribute__((__always_inline__)) svbool_t svwhilelt<scalar_t>(int64_t a, int64_t b) \
+    {                                                                                            \
+        return svwhilelt_b##nbits(a, b);                                                         \
     }
 #include "wrapper-incl.h"
 #undef DEFINE_WRAPPER
-}  // namespace kutacc
+} // namespace kutacc
 
 #endif

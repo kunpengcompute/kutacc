@@ -31,6 +31,6 @@ inline void svst1(svbool_t pg, dst_t *dst, vector_of_t<src_t> src)
         dst_t::not_implemented();
     }
 }
-}   // namespace kutacc
+} // namespace kutacc
 
 #endif

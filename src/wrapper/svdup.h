@@ -20,16 +20,14 @@ namespace kutacc {
 template <typename scalar_t>
 vector_of_t<scalar_t> svdup(scalar_t);
 
-#define DEFINE_WRAPPER(nbits, short_scalar_t, scalar_t, vector_t)                               \
-    template <>                                                                                 \
-    inline __attribute__((__always_inline__)) vector_t svdup<scalar_t>(scalar_t value)          \
-    {                                                                                           \
-        return svdup_##short_scalar_t(value);                                                   \
+#define DEFINE_WRAPPER(nbits, short_scalar_t, scalar_t, vector_t)                      \
+    template <>                                                                        \
+    inline __attribute__((__always_inline__)) vector_t svdup<scalar_t>(scalar_t value) \
+    {                                                                                  \
+        return svdup_##short_scalar_t(value);                                          \
     }
 #include "wrapper-incl.h"
 #undef DEFINE_WRAPPER
-}   // namespace kutacc
+} // namespace kutacc
 
 #endif
-
-

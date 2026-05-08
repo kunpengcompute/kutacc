@@ -16,40 +16,40 @@
 #include "utils/check.h"
 #include <iostream>
 
-namespace kutacc{
-TensorWrapper::TensorWrapper(void *data_ptr, std::vector<int64_t>&& sizes,
-                            std::vector<int64_t>&& strides, int64_t dim, DType dtype)
+namespace kutacc {
+TensorWrapper::TensorWrapper(void *data_ptr, std::vector<int64_t> &&sizes, std::vector<int64_t> &&strides, int64_t dim,
+                             DType dtype)
 {
-    Tensor* t = new Tensor(data_ptr, std::move(sizes), std::move(strides), dim, dtype);
+    Tensor *t = new Tensor(data_ptr, std::move(sizes), std::move(strides), dim, dtype);
     tensor_ = t;
-}                      
+}
 
 TensorWrapper::TensorWrapper()
 {
     tensor_ = nullptr;
 }
 
-void* Tensor::data_ptr() const
+void *Tensor::data_ptr() const
 {
     return data.data_ptr;
 }
 
-const std::vector<int64_t>& Tensor::sizes() const
+const std::vector<int64_t> &Tensor::sizes() const
 {
     return data.sizes;
 }
 
-const std::vector<int64_t>& Tensor::strides() const
+const std::vector<int64_t> &Tensor::strides() const
 {
     return data.strides;
 }
 
-std::vector<int64_t>& Tensor::sizes_ref()
+std::vector<int64_t> &Tensor::sizes_ref()
 {
     return data.sizes;
 }
 
-std::vector<int64_t>& Tensor::strides_ref()
+std::vector<int64_t> &Tensor::strides_ref()
 {
     return data.strides;
 }
@@ -81,13 +81,13 @@ int64_t Tensor::numel() const
 //     data.strides = strides;
 // }
 
-Tensor* convertKutaccTensor(void* tensor_)
+Tensor *convertKutaccTensor(void *tensor_)
 {
     return (Tensor *)tensor_;
 }
 
 TensorWrapper::~TensorWrapper()
 {
-    delete static_cast<Tensor*>(tensor_);
+    delete static_cast<Tensor *>(tensor_);
 }
-}
+} // namespace kutacc

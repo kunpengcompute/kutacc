@@ -17,8 +17,8 @@
 #include "utils/check.h"
 #include "utils/collapse.h"
 
-namespace kutacc{
-void linear_kernel(Tensor &act, Tensor &weight, float* bias_data, Tensor& result, int64_t beta)
+namespace kutacc {
+void linear_kernel(Tensor &act, Tensor &weight, float *bias_data, Tensor &result, int64_t beta)
 {
     int64_t m = act.numel() / act.sizes().back();
     int64_t n = weight.numel() / weight.sizes().back();
@@ -26,24 +26,25 @@ void linear_kernel(Tensor &act, Tensor &weight, float* bias_data, Tensor& result
     bool bias_flag = bias_data != nullptr ? true : false;
     if (bias_flag) {
         addmm(to_bf16(1),
-            Tensor((__bf16 *)act.data_ptr(), {m, k}, {act.strides()[(unsigned long)act.dim() - 2], 1}, 2, kBF16),
-            Tensor((__bf16 *)weight.data_ptr(), {k, n}, {1, weight.strides()[(unsigned long)weight.dim() - 2]}, 2, kBF16),
-            to_bf16((float)beta),
-            Tensor((__bf16 *)result.data_ptr(), {m, n}, {n, 1}, 2, kBF16), 
-            BlasExtendParams{.row_bias = bias_flag, .bias = bias_data});
+              Tensor((__bf16 *)act.data_ptr(), {m, k}, {act.strides()[(unsigned long)act.dim() - 2], 1}, 2, kBF16),
+              Tensor((__bf16 *)weight.data_ptr(), {k, n}, {1, weight.strides()[(unsigned long)weight.dim() - 2]}, 2,
+                     kBF16),
+              to_bf16((float)beta), Tensor((__bf16 *)result.data_ptr(), {m, n}, {n, 1}, 2, kBF16),
+              BlasExtendParams{.row_bias = bias_flag, .bias = bias_data});
     } else {
         addmm(to_bf16(1),
-            Tensor((__bf16 *)act.data_ptr(), {m, k}, {act.strides()[(unsigned long)act.dim() - 2], 1}, 2, kBF16),
-            Tensor((__bf16 *)weight.data_ptr(), {k, n}, {1, weight.strides()[(unsigned long)weight.dim() - 2]}, 2, kBF16),
-            to_bf16((float)beta),
-            Tensor((__bf16 *)result.data_ptr(), {m, n}, {n, 1}, 2, kBF16), 
-            BlasExtendParams{.row_bias = bias_flag, .bias = bias_data});
+              Tensor((__bf16 *)act.data_ptr(), {m, k}, {act.strides()[(unsigned long)act.dim() - 2], 1}, 2, kBF16),
+              Tensor((__bf16 *)weight.data_ptr(), {k, n}, {1, weight.strides()[(unsigned long)weight.dim() - 2]}, 2,
+                     kBF16),
+              to_bf16((float)beta), Tensor((__bf16 *)result.data_ptr(), {m, n}, {n, 1}, 2, kBF16),
+              BlasExtendParams{.row_bias = bias_flag, .bias = bias_data});
     }
 }
-}
+} // namespace kutacc
 
-void kutacc_af2_linear(kutacc_tensor_h act, kutacc_tensor_h weight, float* bias_data, kutacc_tensor_h result, int64_t beta)
+void kutacc_af2_linear(kutacc_tensor_h act, kutacc_tensor_h weight, float *bias_data, kutacc_tensor_h result,
+                       int64_t beta)
 {
-    kutacc::linear_kernel(*kutacc::convertKutaccTensor(act), *kutacc::convertKutaccTensor(weight), bias_data, 
-        *kutacc::convertKutaccTensor(result), beta);
+    kutacc::linear_kernel(*kutacc::convertKutaccTensor(act), *kutacc::convertKutaccTensor(weight), bias_data,
+                          *kutacc::convertKutaccTensor(result), beta);
 }

@@ -29,13 +29,13 @@ struct KuTACC_MallocDeleter {
 };
 
 template <typename T>
-inline std::unique_ptr<T[], KuTACC_MallocDeleter<T> > alloc(int64_t size)
+inline std::unique_ptr<T[], KuTACC_MallocDeleter<T>> alloc(int64_t size)
 {
     void *ptr;
     size_t real_size = static_cast<size_t>(size);
     kutacc_posix_memalign(&ptr, 64, real_size * sizeof(T));
-    return std::unique_ptr<T[], KuTACC_MallocDeleter<T>>(static_cast<T*>(ptr));
+    return std::unique_ptr<T[], KuTACC_MallocDeleter<T>>(static_cast<T *>(ptr));
 }
-}   // namespace kutacc
+} // namespace kutacc
 
 #endif

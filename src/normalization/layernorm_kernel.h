@@ -39,18 +39,18 @@ inline void af2_layernorm_kernel(scalar_t *data, float *gamma, float *beta, int6
     }
     float sum = svaddv(svptrue_b32(), vec_sum);
     float sum2 = svaddv(svptrue_b32(), vec_sum2);
-    float mean = sum / (float) size + delta;
-    float var = std::max((sum2 - sum * sum / (float) size) / (float) size, 0.f);
+    float mean = sum / (float)size + delta;
+    float var = std::max((sum2 - sum * sum / (float)size) / (float)size, 0.f);
     float rstd = 1 / std::sqrt(var + eps);
     svfloat32_t bias = svdup_f32(-rstd * mean);
-    for ( int64_t i = 0; i < size; i += vl) {
+    for (int64_t i = 0; i < size; i += vl) {
         svbool_t pg = svwhilelt_b32(i, size);
         svfloat32_t values = kutacc::svld1<float, scalar_t>(pg, &data[i]);
         values = svmla_x(pg, bias, values, rstd);
-        values = svmad_x(pg, values, svld1<float, float>(pg, & gamma[i]), svld1<float, float>(pg, &beta[i]));
+        values = svmad_x(pg, values, svld1<float, float>(pg, &gamma[i]), svld1<float, float>(pg, &beta[i]));
         kutacc::svst1<scalar_t, float>(pg, &out[i], values);
     }
 }
-}
+} // namespace kutacc
 
 #endif

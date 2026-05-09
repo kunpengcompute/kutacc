@@ -49,16 +49,17 @@ void af2_transpose_kernel(Tensor &data, Tensor &out)
                 int64_t bmi = sbmi + block_mi_start;
                 if (bmi < m - rank * block_m && bni < n - ri * block_n) {
                     if (ri != rank) {
-                        std::memcpy((uint8_t *)(kupl_recvbuf) + (ri * subblock_m * block_n + sbmi * block_n + bni) * len,
-                               (uint8_t *)(data.data_ptr()) + bmi * data.strides()[0] +
-                                   (bni + ri * block_n) * data.strides()[1],
-                               (size_t)len);
+                        std::memcpy(
+                            (uint8_t *)(kupl_recvbuf) + (ri * subblock_m * block_n + sbmi * block_n + bni) * len,
+                            (uint8_t *)(data.data_ptr()) + bmi * data.strides()[0] +
+                                (bni + ri * block_n) * data.strides()[1],
+                            (size_t)len);
                     } else {
                         std::memcpy((uint8_t *)(out.data_ptr()) + (bmi + rank * block_m) * out.strides()[0] +
-                                   bni * out.strides()[1],
-                               (uint8_t *)(data.data_ptr()) + bmi * data.strides()[0] +
-                                   (bni + rank * block_n) * data.strides()[1],
-                               (size_t)len);
+                                        bni * out.strides()[1],
+                                    (uint8_t *)(data.data_ptr()) + bmi * data.strides()[0] +
+                                        (bni + rank * block_n) * data.strides()[1],
+                                    (size_t)len);
                     }
                 }
             });
@@ -73,10 +74,11 @@ void af2_transpose_kernel(Tensor &data, Tensor &out)
                     if (ri != rank) {
                         void *remote_buffer;
                         kupl_shm_win_query(kupl_recvbuf_win, (int)ri, &remote_buffer);
-                        std::memcpy((uint8_t *)(out.data_ptr()) + (bmi + ri * block_m) * out.strides()[0] +
-                                   bni * out.strides()[1],
-                               (uint8_t *)(remote_buffer) + (rank * subblock_m * block_n + sbmi * block_n + bni) * len,
-                               (size_t)len);
+                        std::memcpy(
+                            (uint8_t *)(out.data_ptr()) + (bmi + ri * block_m) * out.strides()[0] +
+                                bni * out.strides()[1],
+                            (uint8_t *)(remote_buffer) + (rank * subblock_m * block_n + sbmi * block_n + bni) * len,
+                            (size_t)len);
                     }
                 }
             });
@@ -85,7 +87,7 @@ void af2_transpose_kernel(Tensor &data, Tensor &out)
         MPI_Barrier(MPI_COMM_WORLD);
     }
 }
-}
+} // namespace kutacc
 
 void kutacc_af2_transpose(kutacc_tensor_h data, kutacc_tensor_h out)
 {

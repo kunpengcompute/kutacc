@@ -20,9 +20,8 @@
 #include <utility>
 
 namespace kutacc {
-    void addmm(__bf16 alpha, const kutacc::Tensor &a,
-                const kutacc::Tensor &b, __bf16 beta, const kutacc::Tensor &c,
-                kutacc::BlasExtendParams param = {});
+void addmm(__bf16 alpha, const kutacc::Tensor &a, const kutacc::Tensor &b, __bf16 beta, const kutacc::Tensor &c,
+           kutacc::BlasExtendParams param = {});
 }
 
 #endif

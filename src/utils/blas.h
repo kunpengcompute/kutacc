@@ -20,16 +20,15 @@
 
 namespace kutacc {
 
-    template <typename intype, typename outtype>
-    void gemm(char transa, char transb, int m, int n, int k, outtype alpha, const intype *a, int lda, const intype *b,
-        int ldb, outtype beta, outtype *c, int ldc, const BlasExtendParams &param = {});
+template <typename intype, typename outtype>
+void gemm(char transa, char transb, int m, int n, int k, outtype alpha, const intype *a, int lda, const intype *b,
+          int ldb, outtype beta, outtype *c, int ldc, const BlasExtendParams &param = {});
 
-    template <typename intype, typename outtype>
-    void gemm_pack(char identifier, char transa, char transb, int M, int N, int K, int lda, int ldb, const intype *src,
-        intype *dst);
+template <typename intype, typename outtype>
+void gemm_pack(char identifier, char transa, char transb, int M, int N, int K, int lda, int ldb, const intype *src,
+               intype *dst);
 
-    template <typename intype, typename outtype>                                                                                                                     \
-    size_t gemm_pack_get_size(char identifier, int m, int n, int k);
-}   // namespace kutacc
+template <typename intype, typename outtype>
+size_t gemm_pack_get_size(char identifier, int m, int n, int k);
+} // namespace kutacc
 #endif
-

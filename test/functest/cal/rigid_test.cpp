@@ -18,7 +18,7 @@
 TEST(RigidTest, rot_vec_mul_nullptr_1)
 {
     float a = 0.75f;
-    void *a_ptr = (void*)&a; 
+    void *a_ptr = (void*)&a;
     kutacc_af2_rigid_rot_vec_mul(nullptr, a_ptr, a_ptr, a_ptr);
     std::cerr << "rigid_rot_vec_mul 1st param pts is nullptr" << std::endl;
 }
@@ -26,7 +26,7 @@ TEST(RigidTest, rot_vec_mul_nullptr_1)
 TEST(RigidTest, rot_vec_mul_nullptr_2)
 {
     float a = 0.75f;
-    void *a_ptr = (void*)&a; 
+    void *a_ptr = (void*)&a;
     kutacc_af2_rigid_rot_vec_mul(a_ptr, nullptr, a_ptr, a_ptr);
     std::cerr << "rigid_rot_vec_mul 2nd param rot_mats is nullptr" << std::endl;
 }
@@ -34,7 +34,7 @@ TEST(RigidTest, rot_vec_mul_nullptr_2)
 TEST(RigidTest, rot_vec_mul_nullptr_3)
 {
     float a = 0.75f;
-    void *a_ptr = (void*)&a; 
+    void *a_ptr = (void*)&a;
     kutacc_af2_rigid_rot_vec_mul(a_ptr, a_ptr, nullptr, a_ptr);
     std::cerr << "rigid_rot_vec_mul 3rd param out is nullptr" << std::endl;
 }

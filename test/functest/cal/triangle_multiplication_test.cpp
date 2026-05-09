@@ -142,7 +142,7 @@ TEST(TriangleMultiplicationTest, equation_nullptr_negative_int)
     float a = 0.8f;
     void *a_ptr = (void*)&a;
     int64_t n_res_gather = -5;
-    
+
     kutacc_af2_triangle_multiplication_equation(a_ptr, a_ptr, a_ptr, n_res_gather, true);
     std::cerr << "triangle_multiplication_equation 4th param n_res_gather is negative" << std::endl;
 }
@@ -201,8 +201,8 @@ TEST(TriangleMultiplicationTest, gate_and_out_linear_nullptr_2)
         }
     };
     void *x_ptr = (void *)&x;
-    
-    
+
+
     kutacc_af2_tm_act_inputs_t *act_ptr = (kutacc_af2_tm_act_inputs_t*)malloc(sizeof(kutacc_af2_tm_act_inputs_t));
     if (act_ptr != nullptr) {
         *act_ptr = (kutacc_af2_tm_act_inputs_t){.n_res = 2, .n_res_gather = 2, .proj_act = x_ptr,
@@ -266,8 +266,8 @@ TEST(TriangleMultiplicationTest, gate_and_out_linear_nullptr_4)
         }
     };
     void *x_ptr = (void *)&x;
-    
-    
+
+
     kutacc_af2_tm_act_inputs_t *act_ptr = (kutacc_af2_tm_act_inputs_t*)malloc(sizeof(kutacc_af2_tm_act_inputs_t));
     if (act_ptr != nullptr) {
         *act_ptr = (kutacc_af2_tm_act_inputs_t){.n_res = 2, .n_res_gather = 2, .proj_act = x_ptr,
@@ -302,8 +302,8 @@ TEST(TriangleMultiplicationTest, gate_and_out_linear_nullptr_5)
         }
     };
     void *x_ptr = (void *)&x;
-    
-    
+
+
     kutacc_af2_tm_act_inputs_t *act_ptr = (kutacc_af2_tm_act_inputs_t*)malloc(sizeof(kutacc_af2_tm_act_inputs_t));
     if (act_ptr != nullptr) {
         *act_ptr = (kutacc_af2_tm_act_inputs_t){.n_res = 2, .n_res_gather = 2, .proj_act = x_ptr,

@@ -31,6 +31,6 @@ inline vector_of_t<dst_t> svldnt1(svbool_t pg, const src_t *data)
         dst_t::not_implemented();
     }
 }
-}   // namespace kutacc
+} // namespace kutacc
 
 #endif

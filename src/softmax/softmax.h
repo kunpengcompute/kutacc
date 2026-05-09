@@ -57,6 +57,6 @@ inline void softmax(scalar_t *data, int64_t size, scalar_t *out, float *buf)
     // softmax with max
     softmax_with_max(buf, out, size, svmaxv(svptrue_b32(), reduce));
 }
-}   // namespace kutacc
+} // namespace kutacc
 
 #endif

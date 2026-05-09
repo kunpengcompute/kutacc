@@ -34,8 +34,9 @@ void outer_product_mean_calc_left_and_right_mul_kernel(Tensor &left_proj, Tensor
                                                        int64_t mask_bias)
 {
     KUTACC_CHECK(c_i > 0 && c_m > 0 && n_res > 0 && n_res_gather > 0 && n_seq > 0 && mask_bias >= 0 &&
-        c_i <= INT64_MAX / n_res && c_m <= INT32_MAX && n_res <= INT32_MAX / n_seq && n_res_gather <= INT32_MAX &&
-        n_seq <= INT32_MAX, "input param <= 0 or overflow");
+                     c_i <= INT64_MAX / n_res && c_m <= INT32_MAX && n_res <= INT32_MAX / n_seq &&
+                     n_res_gather <= INT32_MAX && n_seq <= INT32_MAX,
+                 "input param <= 0 or overflow");
     if (kutacc::kutacc_check_err_set == true) {
         return;
     }
@@ -101,10 +102,11 @@ void outer_product_mean_chunk_kernel(const Tensor &output_b, const Tensor &outpu
                                      int64_t right_block_size, int64_t c_i, int64_t c_z, int64_t n_res,
                                      int64_t n_res_gather, int64_t n_seq)
 {
-    KUTACC_CHECK(c_i > 0 && c_z > 0  && n_res > 0 && n_res_gather > 0 && n_seq > 0 &&
-        left_block_size <= INT64_MAX / right_block_size / c_i / c_i && left_block_size <= INT64_MAX - n_res + 1 &&
-        right_block_size <= INT64_MAX / left_block_size / c_z && right_block_size <= INT64_MAX - n_res_gather + 1 &&
-        c_i <= INT32_MAX / c_i && c_z <= INT32_MAX && n_seq <= INT32_MAX,
+    KUTACC_CHECK(
+        c_i > 0 && c_z > 0 && n_res > 0 && n_res_gather > 0 && n_seq > 0 &&
+            left_block_size <= INT64_MAX / right_block_size / c_i / c_i && left_block_size <= INT64_MAX - n_res + 1 &&
+            right_block_size <= INT64_MAX / left_block_size / c_z && right_block_size <= INT64_MAX - n_res_gather + 1 &&
+            c_i <= INT32_MAX / c_i && c_z <= INT32_MAX && n_seq <= INT32_MAX,
         "input param <= 0 or overflow");
     if (kutacc::kutacc_check_err_set == true) {
         return;
@@ -118,7 +120,7 @@ void outer_product_mean_chunk_kernel(const Tensor &output_b, const Tensor &outpu
         auto chunk_buf_ = alloc<__bf16>(left_block_size * right_block_size * c_i * c_i);
         auto out_buf = alloc<__bf16>(left_block_size * right_block_size * c_z);
         KUTACC_CHECK(chunk_buf != nullptr && chunk_buf_ != nullptr && out_buf != nullptr,
-            "outer_product_mean inner alloc memory failed!");
+                     "outer_product_mean inner alloc memory failed!");
         if (kutacc::kutacc_check_err_set == true) {
             return;
         }
@@ -177,11 +179,14 @@ void outer_product_mean_chunk_kernel(const Tensor &output_b, const Tensor &outpu
         }
     });
 }
-}
+} // namespace kutacc
 
-kutacc_export void kutacc_af2_outer_product_mean_calc_left_and_right_mul(kutacc_af2_opm_act_inputs_t *opm_acts_ptr, kutacc_af2_opm_mask_inputs_t *opm_masks_ptr, kutacc_af2_opm_weights_t *opm_weights_ptr)
+kutacc_export void kutacc_af2_outer_product_mean_calc_left_and_right_mul(kutacc_af2_opm_act_inputs_t *opm_acts_ptr,
+                                                                         kutacc_af2_opm_mask_inputs_t *opm_masks_ptr,
+                                                                         kutacc_af2_opm_weights_t *opm_weights_ptr)
 {
-    KUTACC_CHECK(opm_acts_ptr != nullptr && opm_masks_ptr != nullptr && opm_weights_ptr != nullptr, "kutacc_af2_outer_product_mean_calc_left_and_right_mul: input args nullptr error");
+    KUTACC_CHECK(opm_acts_ptr != nullptr && opm_masks_ptr != nullptr && opm_weights_ptr != nullptr,
+                 "kutacc_af2_outer_product_mean_calc_left_and_right_mul: input args nullptr error");
     if (kutacc::kutacc_check_err_set == true) {
         return;
     }
@@ -206,19 +211,23 @@ kutacc_export void kutacc_af2_outer_product_mean_calc_left_and_right_mul(kutacc_
     int64_t c_m = opm_weights_ptr->c_m;
 
     outer_product_mean_calc_left_and_right_mul_kernel(
-        *kutacc::convertKutaccTensor(left_proj), *kutacc::convertKutaccTensor(right_proj), *kutacc::convertKutaccTensor(left_proj_),
-        *kutacc::convertKutaccTensor(right_proj_), *kutacc::convertKutaccTensor(input_act), *kutacc::convertKutaccTensor(mask),
-        *kutacc::convertKutaccTensor(norm), *kutacc::convertKutaccTensor(left_proj_w), *kutacc::convertKutaccTensor(left_proj_b),
-        *kutacc::convertKutaccTensor(right_proj_w), *kutacc::convertKutaccTensor(right_proj_b), c_i, c_m, n_res, n_res_gather, n_seq,
-        mask_bias);
+        *kutacc::convertKutaccTensor(left_proj), *kutacc::convertKutaccTensor(right_proj),
+        *kutacc::convertKutaccTensor(left_proj_), *kutacc::convertKutaccTensor(right_proj_),
+        *kutacc::convertKutaccTensor(input_act), *kutacc::convertKutaccTensor(mask), *kutacc::convertKutaccTensor(norm),
+        *kutacc::convertKutaccTensor(left_proj_w), *kutacc::convertKutaccTensor(left_proj_b),
+        *kutacc::convertKutaccTensor(right_proj_w), *kutacc::convertKutaccTensor(right_proj_b), c_i, c_m, n_res,
+        n_res_gather, n_seq, mask_bias);
 }
 
-kutacc_export void kutacc_af2_outer_product_mean_chunk(kutacc_af2_opm_act_inputs_t *opm_acts_ptr, kutacc_af2_opm_mask_inputs_t *opm_masks_ptr, kutacc_af2_opm_weights_t *opm_weights_ptr,kutacc_tensor_h out, 
-    int64_t left_block_size, int64_t right_block_size)
+kutacc_export void kutacc_af2_outer_product_mean_chunk(kutacc_af2_opm_act_inputs_t *opm_acts_ptr,
+                                                       kutacc_af2_opm_mask_inputs_t *opm_masks_ptr,
+                                                       kutacc_af2_opm_weights_t *opm_weights_ptr, kutacc_tensor_h out,
+                                                       int64_t left_block_size, int64_t right_block_size)
 {
     KUTACC_CHECK(opm_acts_ptr != nullptr && opm_masks_ptr != nullptr && opm_weights_ptr != nullptr && out != nullptr,
-        "kutacc_af2_outer_product_mean_chunk: input args nullptr error");
-    KUTACC_CHECK(left_block_size > 0 && right_block_size > 0,
+                 "kutacc_af2_outer_product_mean_chunk: input args nullptr error");
+    KUTACC_CHECK(
+        left_block_size > 0 && right_block_size > 0,
         "kutacc_af2_outer_product_mean_chunk: input args int values error, values are less than or equal to zero\n");
     if (kutacc::kutacc_check_err_set == true) {
         return;
@@ -237,7 +246,9 @@ kutacc_export void kutacc_af2_outer_product_mean_chunk(kutacc_af2_opm_act_inputs
     kutacc_tensor_h norm = opm_masks_ptr->norm;
     int64_t n_res_gather = opm_masks_ptr->n_res_gather;
 
-    kutacc::outer_product_mean_chunk_kernel(*kutacc::convertKutaccTensor(output_b), *kutacc::convertKutaccTensor(output_w),
-        *kutacc::convertKutaccTensor(out), *kutacc::convertKutaccTensor(left_proj_), *kutacc::convertKutaccTensor(right_proj_),
-        *kutacc::convertKutaccTensor(norm), left_block_size, right_block_size, c_i, c_z, n_res, n_res_gather, n_seq);
+    kutacc::outer_product_mean_chunk_kernel(
+        *kutacc::convertKutaccTensor(output_b), *kutacc::convertKutaccTensor(output_w),
+        *kutacc::convertKutaccTensor(out), *kutacc::convertKutaccTensor(left_proj_),
+        *kutacc::convertKutaccTensor(right_proj_), *kutacc::convertKutaccTensor(norm), left_block_size,
+        right_block_size, c_i, c_z, n_res, n_res_gather, n_seq);
 }

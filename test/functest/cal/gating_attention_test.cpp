@@ -35,12 +35,12 @@ TEST(GatingAttentionTest, gating_attention_nullptr_1)
         }
     };
     void *x_ptr = (void *)&x;
-    
-    
+
+
     kutacc_af2_attention_weights_t *weight_ptr = (kutacc_af2_attention_weights_t*)malloc(sizeof(kutacc_af2_attention_weights_t));
     if (weight_ptr != nullptr) {
         *weight_ptr = (kutacc_af2_attention_weights_t){.nchannels = nchannels, .nheads = 1, .head_size = 2, .query_w = x_ptr,
-            .key_w = x_ptr, .value_w = x_ptr, .gating_w = x_ptr, .gating_b = x_ptr, 
+            .key_w = x_ptr, .value_w = x_ptr, .gating_w = x_ptr, .gating_b = x_ptr,
             .output_w = x_ptr, .output_b = x_ptr};
     }
     kutacc_af2_attention_inputs_t *q_based_ptr = (kutacc_af2_attention_inputs_t*)malloc(sizeof(kutacc_af2_attention_inputs_t));
@@ -72,12 +72,12 @@ TEST(GatingAttentionTest, gating_attention_nullptr_2)
         }
     };
     void *x_ptr = (void *)&x;
-    
-    
+
+
     kutacc_af2_attention_weights_t *weight_ptr = (kutacc_af2_attention_weights_t*)malloc(sizeof(kutacc_af2_attention_weights_t));
     if (weight_ptr != nullptr) {
         *weight_ptr = (kutacc_af2_attention_weights_t){.nchannels = nchannels, .nheads = 1, .head_size = 2, .query_w = x_ptr,
-            .key_w = x_ptr, .value_w = x_ptr, .gating_w = x_ptr, .gating_b = x_ptr, 
+            .key_w = x_ptr, .value_w = x_ptr, .gating_w = x_ptr, .gating_b = x_ptr,
             .output_w = x_ptr, .output_b = x_ptr};
     }
     kutacc_af2_gating_attention(a_ptr, nullptr, a_ptr, a_ptr, weight_ptr, a_ptr, 5);
@@ -104,12 +104,12 @@ TEST(GatingAttentionTest, gating_attention_nullptr_3)
         }
     };
     void *x_ptr = (void *)&x;
-    
-    
+
+
     kutacc_af2_attention_weights_t *weight_ptr = (kutacc_af2_attention_weights_t*)malloc(sizeof(kutacc_af2_attention_weights_t));
     if (weight_ptr != nullptr) {
         *weight_ptr = (kutacc_af2_attention_weights_t){.nchannels = nchannels, .nheads = 1, .head_size = 2, .query_w = x_ptr,
-            .key_w = x_ptr, .value_w = x_ptr, .gating_w = x_ptr, .gating_b = x_ptr, 
+            .key_w = x_ptr, .value_w = x_ptr, .gating_w = x_ptr, .gating_b = x_ptr,
             .output_w = x_ptr, .output_b = x_ptr};
     }
     kutacc_af2_attention_inputs_t *q_based_ptr = (kutacc_af2_attention_inputs_t*)malloc(sizeof(kutacc_af2_attention_inputs_t));
@@ -141,12 +141,12 @@ TEST(GatingAttentionTest, gating_attention_nullptr_4)
         }
     };
     void *x_ptr = (void *)&x;
-    
-    
+
+
     kutacc_af2_attention_weights_t *weight_ptr = (kutacc_af2_attention_weights_t*)malloc(sizeof(kutacc_af2_attention_weights_t));
     if (weight_ptr != nullptr) {
         *weight_ptr = (kutacc_af2_attention_weights_t){.nchannels = nchannels, .nheads = 1, .head_size = 2, .query_w = x_ptr,
-            .key_w = x_ptr, .value_w = x_ptr, .gating_w = x_ptr, .gating_b = x_ptr, 
+            .key_w = x_ptr, .value_w = x_ptr, .gating_w = x_ptr, .gating_b = x_ptr,
             .output_w = x_ptr, .output_b = x_ptr};
     }
     kutacc_af2_attention_inputs_t *q_based_ptr = (kutacc_af2_attention_inputs_t*)malloc(sizeof(kutacc_af2_attention_inputs_t));
@@ -209,12 +209,12 @@ TEST(GatingAttentionTest, gating_attention_nullptr_6)
         }
     };
     void *x_ptr = (void *)&x;
-    
-    
+
+
     kutacc_af2_attention_weights_t *weight_ptr = (kutacc_af2_attention_weights_t*)malloc(sizeof(kutacc_af2_attention_weights_t));
     if (weight_ptr != nullptr) {
         *weight_ptr = (kutacc_af2_attention_weights_t){.nchannels = nchannels, .nheads = 1, .head_size = 2, .query_w = x_ptr,
-            .key_w = x_ptr, .value_w = x_ptr, .gating_w = x_ptr, .gating_b = x_ptr, 
+            .key_w = x_ptr, .value_w = x_ptr, .gating_w = x_ptr, .gating_b = x_ptr,
             .output_w = x_ptr, .output_b = x_ptr};
     }
     kutacc_af2_attention_inputs_t *q_based_ptr = (kutacc_af2_attention_inputs_t*)malloc(sizeof(kutacc_af2_attention_inputs_t));
@@ -246,12 +246,12 @@ TEST(GatingAttentionTest, gating_attention_negative_block_size)
         }
     };
     void *x_ptr = (void *)&x;
-    
-    
+
+
     kutacc_af2_attention_weights_t *weight_ptr = (kutacc_af2_attention_weights_t*)malloc(sizeof(kutacc_af2_attention_weights_t));
     if (weight_ptr != nullptr) {
         *weight_ptr = (kutacc_af2_attention_weights_t){.nchannels = nchannels, .nheads = 1, .head_size = 2, .query_w = x_ptr,
-            .key_w = x_ptr, .value_w = x_ptr, .gating_w = x_ptr, .gating_b = x_ptr, 
+            .key_w = x_ptr, .value_w = x_ptr, .gating_w = x_ptr, .gating_b = x_ptr,
             .output_w = x_ptr, .output_b = x_ptr};
     }
     kutacc_af2_attention_inputs_t *q_based_ptr = (kutacc_af2_attention_inputs_t*)malloc(sizeof(kutacc_af2_attention_inputs_t));

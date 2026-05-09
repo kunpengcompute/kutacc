@@ -71,8 +71,8 @@ TEST(InvariantPointTest, invariant_point_nullptr2)
         }
     };
     void *x_ptr = (void *)&x;
-    
-    
+
+
     kutacc_af2_ipa_s_inputs_t *s_ptrs = (kutacc_af2_ipa_s_inputs_t*)malloc(sizeof(kutacc_af2_ipa_s_inputs_t));
     if (s_ptrs != nullptr) {
         *s_ptrs = (kutacc_af2_ipa_s_inputs_t){.n_res = 2, .a = x_ptr, .b = x_ptr,
@@ -110,8 +110,8 @@ TEST(InvariantPointTest, invariant_point_nullptr3)
         }
     };
     void *x_ptr = (void *)&x;
-    
-    
+
+
     kutacc_af2_ipa_s_inputs_t *s_ptrs = (kutacc_af2_ipa_s_inputs_t*)malloc(sizeof(kutacc_af2_ipa_s_inputs_t));
     if (s_ptrs != nullptr) {
         *s_ptrs = (kutacc_af2_ipa_s_inputs_t){.n_res = 2, .a = x_ptr, .b = x_ptr,
@@ -153,8 +153,8 @@ TEST(InvariantPointTest, invariant_point_nullptr4)
         }
     };
     void *x_ptr = (void *)&x;
-    
-    
+
+
     kutacc_af2_ipa_s_inputs_t *s_ptrs = (kutacc_af2_ipa_s_inputs_t*)malloc(sizeof(kutacc_af2_ipa_s_inputs_t));
     if (s_ptrs != nullptr) {
         *s_ptrs = (kutacc_af2_ipa_s_inputs_t){.n_res = 2, .a = x_ptr, .b = x_ptr,
@@ -196,8 +196,8 @@ TEST(InvariantPointTest, invariant_point_nullptr5)
         }
     };
     void *x_ptr = (void *)&x;
-    
-    
+
+
     kutacc_af2_ipa_s_inputs_t *s_ptrs = (kutacc_af2_ipa_s_inputs_t*)malloc(sizeof(kutacc_af2_ipa_s_inputs_t));
     if (s_ptrs != nullptr) {
         *s_ptrs = (kutacc_af2_ipa_s_inputs_t){.n_res = 2, .a = x_ptr, .b = x_ptr,
@@ -239,8 +239,8 @@ TEST(InvariantPointTest, invariant_point_nullptr6)
         }
     };
     void *x_ptr = (void *)&x;
-    
-    
+
+
     kutacc_af2_ipa_s_inputs_t *s_ptrs = (kutacc_af2_ipa_s_inputs_t*)malloc(sizeof(kutacc_af2_ipa_s_inputs_t));
     if (s_ptrs != nullptr) {
         *s_ptrs = (kutacc_af2_ipa_s_inputs_t){.n_res = 2, .a = x_ptr, .b = x_ptr,
@@ -282,8 +282,8 @@ TEST(InvariantPointTest, invariant_point_nullptr7)
         }
     };
     void *x_ptr = (void *)&x;
-    
-    
+
+
     kutacc_af2_ipa_s_inputs_t *s_ptrs = (kutacc_af2_ipa_s_inputs_t*)malloc(sizeof(kutacc_af2_ipa_s_inputs_t));
     if (s_ptrs != nullptr) {
         *s_ptrs = (kutacc_af2_ipa_s_inputs_t){.n_res = 2, .a = x_ptr, .b = x_ptr,

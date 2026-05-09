@@ -20,12 +20,12 @@ namespace kutacc {
 template <typename dst_t, typename src_t>
 vector_of_t<dst_t> svcvt(svbool_t pg, vector_of_t<src_t> src);
 
-#define DEFINE_SVCVT(short_dst_t, dst_t, src_t)                                                     \
-    template <>                                                                                     \
-    inline __attribute__((__always_inline__)) vector_of_t<dst_t> svcvt<dst_t, src_t>(svbool_t pg,   \
-        vector_of_t<src_t> src)                                                                     \
-    {                                                                                               \
-        return svcvt_##short_dst_t##_x(pg, src);                                                    \
+#define DEFINE_SVCVT(short_dst_t, dst_t, src_t)                                                              \
+    template <>                                                                                              \
+    inline __attribute__((__always_inline__)) vector_of_t<dst_t> svcvt<dst_t, src_t>(svbool_t pg,            \
+                                                                                     vector_of_t<src_t> src) \
+    {                                                                                                        \
+        return svcvt_##short_dst_t##_x(pg, src);                                                             \
     }
 DEFINE_SVCVT(bf16, __bf16, float);
 #undef DEFINE_SVCVT
@@ -35,6 +35,6 @@ inline __attribute__((__always_inline__)) svfloat32_t svcvt<float, __bf16>(svboo
 {
     return svreinterpret_f32(svlsl_x(pg, svreinterpret_u32(src), (uint32_t)16));
 }
-}   // namespace kutacc
+} // namespace kutacc
 
 #endif

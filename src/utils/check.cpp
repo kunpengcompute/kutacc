@@ -13,5 +13,5 @@
 #include "check.h"
 
 namespace kutacc {
-    bool kutacc_check_err_set = false;
-}   // namespace kutacc
+bool kutacc_check_err_set = false;
+} // namespace kutacc

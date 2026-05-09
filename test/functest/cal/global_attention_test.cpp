@@ -39,7 +39,7 @@ TEST(GlobalAttentionTest, global_attention_nullptr_1)
     kutacc_af2_attention_weights_t *weight_ptr = (kutacc_af2_attention_weights_t*)malloc(sizeof(kutacc_af2_attention_weights_t));
     if (weight_ptr != nullptr) {
         *weight_ptr = (kutacc_af2_attention_weights_t){.nchannels = nchannels, .nheads = 1, .head_size = 2, .query_w = x_ptr,
-            .key_w = x_ptr, .value_w = x_ptr, .gating_w = x_ptr, .gating_b = x_ptr, 
+            .key_w = x_ptr, .value_w = x_ptr, .gating_w = x_ptr, .gating_b = x_ptr,
             .output_w = x_ptr, .output_b = x_ptr};
     }
     kutacc_af2_global_attention(nullptr, a_ptr, a_ptr, weight_ptr, a_ptr);
@@ -67,11 +67,11 @@ TEST(GlobalAttentionTest, global_attention_nullptr_2)
     };
     void *x_ptr = (void *)&x;
 
-   
+
     kutacc_af2_attention_weights_t *weight_ptr = (kutacc_af2_attention_weights_t*)malloc(sizeof(kutacc_af2_attention_weights_t));
     if (weight_ptr != nullptr) {
         *weight_ptr = (kutacc_af2_attention_weights_t){.nchannels = nchannels, .nheads = 1, .head_size = 2, .query_w = x_ptr,
-            .key_w = x_ptr, .value_w = x_ptr, .gating_w = x_ptr, .gating_b = x_ptr, 
+            .key_w = x_ptr, .value_w = x_ptr, .gating_w = x_ptr, .gating_b = x_ptr,
             .output_w = x_ptr, .output_b = x_ptr};
     }
     kutacc_af2_attention_inputs_t *q_based_ptr = (kutacc_af2_attention_inputs_t*)malloc(sizeof(kutacc_af2_attention_inputs_t));
@@ -104,11 +104,11 @@ TEST(GlobalAttentionTest, global_attention_nullptr_3)
     };
     void *x_ptr = (void *)&x;
 
-   
+
     kutacc_af2_attention_weights_t *weight_ptr = (kutacc_af2_attention_weights_t*)malloc(sizeof(kutacc_af2_attention_weights_t));
     if (weight_ptr != nullptr) {
         *weight_ptr = (kutacc_af2_attention_weights_t){.nchannels = nchannels, .nheads = 1, .head_size = 2, .query_w = x_ptr,
-            .key_w = x_ptr, .value_w = x_ptr, .gating_w = x_ptr, .gating_b = x_ptr, 
+            .key_w = x_ptr, .value_w = x_ptr, .gating_w = x_ptr, .gating_b = x_ptr,
             .output_w = x_ptr, .output_b = x_ptr};
     }
     kutacc_af2_attention_inputs_t *q_based_ptr = (kutacc_af2_attention_inputs_t*)malloc(sizeof(kutacc_af2_attention_inputs_t));
@@ -141,7 +141,7 @@ TEST(GlobalAttentionTest, global_attention_nullptr_4)
     };
     void *x_ptr = (void *)&x;
 
-   
+
     kutacc_af2_attention_inputs_t *q_based_ptr = (kutacc_af2_attention_inputs_t*)malloc(sizeof(kutacc_af2_attention_inputs_t));
     if (q_based_ptr != nullptr) {
         *q_based_ptr = (kutacc_af2_attention_inputs_t){.batch = batch, .seq_len = seq_len, .q = x_ptr,
@@ -172,11 +172,11 @@ TEST(GlobalAttentionTest, global_attention_nullptr_5)
     };
     void *x_ptr = (void *)&x;
 
-   
+
     kutacc_af2_attention_weights_t *weight_ptr = (kutacc_af2_attention_weights_t*)malloc(sizeof(kutacc_af2_attention_weights_t));
     if (weight_ptr != nullptr) {
         *weight_ptr = (kutacc_af2_attention_weights_t){.nchannels = nchannels, .nheads = 1, .head_size = 2, .query_w = x_ptr,
-            .key_w = x_ptr, .value_w = x_ptr, .gating_w = x_ptr, .gating_b = x_ptr, 
+            .key_w = x_ptr, .value_w = x_ptr, .gating_w = x_ptr, .gating_b = x_ptr,
             .output_w = x_ptr, .output_b = x_ptr};
     }
     kutacc_af2_attention_inputs_t *q_based_ptr = (kutacc_af2_attention_inputs_t*)malloc(sizeof(kutacc_af2_attention_inputs_t));

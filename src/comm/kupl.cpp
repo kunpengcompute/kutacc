@@ -10,10 +10,10 @@
  * See the Mulan PSL v2 for more details.
  */
 
+#include <unistd.h>
 #include "../utils/check.h"
 #include "kutacc.h"
 #include "kupl.h"
-#include <unistd.h>
 #include <mpi.h>
 
 #define KUPL_CHECK(cmd)                                          \

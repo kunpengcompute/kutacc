@@ -21,16 +21,14 @@ namespace kutacc {
 template <typename scalar_t>
 uint64_t svcnt();
 
-#define DEFINE_WRAPPER(nbits, short_scalar_t, scalar_t, vector_t)               \
-    template <>                                                                 \
-    inline __attribute__((__always_inline__)) uint64_t svcnt<scalar_t>()        \
-    {                                                                           \
-        return __ARM_FEATURE_SVE_BITS / (nbits);                                \
+#define DEFINE_WRAPPER(nbits, short_scalar_t, scalar_t, vector_t)        \
+    template <>                                                          \
+    inline __attribute__((__always_inline__)) uint64_t svcnt<scalar_t>() \
+    {                                                                    \
+        return __ARM_FEATURE_SVE_BITS / (nbits);                         \
     };
 #include "wrapper-incl.h"
 #undef DEFINE_WRAPPER
-}  // namespace kutacc
+} // namespace kutacc
 
 #endif
-
-

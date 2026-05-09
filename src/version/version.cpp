@@ -13,7 +13,7 @@
 #include "kutacc.h"
 
 const kutacc_version_t g_version = {
-    .product_name = "Kunpeng HPCKit", 
+    .product_name = "Kunpeng HPCKit",
     .product_version = "26.1.RC1",
     .component_name = "KuTACC",
     .component_version = "26.1.RC1",
@@ -25,7 +25,7 @@ const kutacc_version_t g_version = {
 #endif
 };
 
-int kutacc_get_version(kutacc_version_t *version) 
+int kutacc_get_version(kutacc_version_t *version)
 {
     if (version == nullptr) {
         return KUTACC_ERROR;

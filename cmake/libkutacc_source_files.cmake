@@ -26,7 +26,7 @@ function(libkutacc_source_files src_files)
 endfunction()
 
 function(libkutacc_header_install)
-    
+
     file(GLOB BASE_HEADER ${KUTACC_ROOT_DIR}/include/*.h)
 
     install(FILES ${BASE_HEADER} DESTINATION ${KUTACC_INSTALL_INCLUDEDIR} PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)

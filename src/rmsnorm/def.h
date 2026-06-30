@@ -11,29 +11,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include <cmath>
-#include <arm_sve.h>
+#ifndef DEF_H
+#define DEF_H
 
-#ifndef __GNUC__
-#define UNLIKELY(x) (x)
-#else
-#define UNLIKELY(x) __builtin_expect(!!(x), 0)
-#endif
+#include <arm_neon.h>
+#include <arm_sve.h>
+#include <utils/bf16.h>
+
+#include <cmath>
+#include <cstdint>
 
 const int64_t STEP = svcnth();
 
-const int64_t PREFETCH_DIST = 16;
 namespace kutacc {
-
-inline __bf16 to_bf16(float x)
-{
-    return vcvth_bf16_f32(x);
-}
-
-inline float to_float(__bf16 x)
-{
-    return vcvtah_f32_bf16(x);
-}
 
 template <typename scalar_t, bool has_residual>
 inline float get_sum(const int64_t start, const int64_t end, const scalar_t *acts, scalar_t *residual)
@@ -71,6 +61,13 @@ inline float get_sum(const int64_t start, const int64_t end, const scalar_t *act
                 svst1(pg16, residual + i, svuzp1(svcvt_bf16_x(pg32, a0), svcvt_bf16_x(pg32, a1)));
             }
         }
+#ifdef ENABLE_EXTRA_PREFETCH
+        constexpr int prf_stride = 3 * 1024 / (1 + has_residual) & ~63;
+        svprfh(svwhilelt_b16(i + prf_stride / 2, end), acts + i + prf_stride / 2, SV_PLDL2STRM);
+        if constexpr (has_residual) {
+            svprfh(svwhilelt_b16(i + prf_stride / 2, end), residual + i + prf_stride / 2, SV_PLDL2STRM);
+        }
+#endif
         sqrsum = svmla_x(pg32, sqrsum, a0, a0);
         sqrsum = svmla_x(pg32, sqrsum, a1, a1);
     }
@@ -78,19 +75,20 @@ inline float get_sum(const int64_t start, const int64_t end, const scalar_t *act
     for (; i < end; i++) {
         if constexpr (has_residual) {
             residual[i] = float(acts[i]) + residual[i];
+            sum += float(residual[i]) * residual[i];
+        } else {
+            sum += float(acts[i]) * acts[i];
         }
-        sum += float(residual[i]) * residual[i];
     }
     return sum;
 }
 
 template <typename scalar_t, bool has_residual>
-inline void get_sum_quant(const int64_t width, const scalar_t *acts, const scalar_t *weights, float eps,
-    scalar_t *residual, float &quant_scale, float &scale)
+inline void get_sum_max(int64_t width, const scalar_t *acts, const scalar_t *weights, float eps, scalar_t *residual,
+    float &sum, float &max)
 {
+    sum = max = 0;
     int64_t i = 0;
-    float sum = 0;
-    float max = 0;
     svbool_t pg16 = svptrue_b16();
     svbool_t pg32 = svptrue_b32();
     svfloat32_t sqrsum = svdup_f32(0);
@@ -117,6 +115,14 @@ inline void get_sum_quant(const int64_t width, const scalar_t *acts, const scala
         svfloat32_t w1 = svreinterpret_f32(svzip2(zero_b, w));
         a0 = svmul_x(pg32, a0, w0);
         a1 = svmul_x(pg32, a1, w1);
+#ifdef ENABLE_EXTRA_PREFETCH
+        constexpr int prf_stride = 3 * 1024 / (2 + has_residual) & ~63;
+        svprfh(svwhilelt_b16(i + prf_stride / 2, width), acts + i + prf_stride / 2, SV_PLDL2STRM);
+        svprfh(svwhilelt_b16(i + prf_stride / 2, width), weights + i + prf_stride / 2, SV_PLDL2STRM);
+        if constexpr (has_residual) {
+            svprfh(svwhilelt_b16(i + prf_stride / 2, width), residual + i + prf_stride / 2, SV_PLDL2STRM);
+        }
+#endif
         absmax = svmax_x(pg32, absmax, svabs_x(pg32, a0));
         absmax = svmax_x(pg32, absmax, svabs_x(pg32, a1));
     }
@@ -124,14 +130,27 @@ inline void get_sum_quant(const int64_t width, const scalar_t *acts, const scala
     max = svmaxv_f32(pg32, absmax);
     for (; i < width; i++) {
         if constexpr (has_residual) {
-            residual[i] = float(acts[i]) + residual[i];
+            residual[i] = to_bf16(to_float(acts[i]) + to_float(residual[i]));
+            sum += to_float(residual[i]) * to_float(residual[i]);
+            max = std::max(max, std::abs(to_float(residual[i]) * to_float(weights[i])));
+        } else {
+            sum += to_float(acts[i]) * to_float(acts[i]);
+            max = std::max(max, std::abs(to_float(acts[i]) * to_float(weights[i])));
         }
-        sum += float(residual[i]) * residual[i];
-        max = std::max(max, std::abs(float(residual[i]) * weights[i]));
     }
+}
+
+template <typename scalar_t, bool has_residual>
+inline void get_quant_scale(int64_t width, const scalar_t *acts, const scalar_t *weights, float eps, scalar_t *residual,
+    float &quant_scale, float &scale)
+{
+    float sum = 0;
+    float max = 0;
+    get_sum_max<scalar_t, has_residual>(width, acts, weights, eps, residual, sum, max);
     float rms = sqrt(sum / width + eps);
     quant_scale = 127 / max;
     scale = max / 127 / rms;
 }
 
 }  // namespace kutacc
+#endif

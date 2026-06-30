@@ -12,36 +12,24 @@
 # SOFTWARE.
 #
 
-set(TEST_DISPATCH_COMBINE test_dispatch_combine)
-add_executable(${TEST_DISPATCH_COMBINE} csrc/main.cpp csrc/moe/low_latency.cpp csrc/utils/memory_pool.cpp)
-
-set(CMAKE_CXX_FLAGS "-stdlib=libc++")
-target_compile_features(${TEST_DISPATCH_COMBINE} PRIVATE cxx_std_17)
-target_compile_options(${TEST_DISPATCH_COMBINE} PRIVATE -Wall -Wno-unused-variable -Wno-unused-function)
-target_compile_options(${TEST_DISPATCH_COMBINE} PRIVATE -Wno-undefined-arm-za -Wno-undefined-arm-streaming)
-target_compile_options(${TEST_DISPATCH_COMBINE} PRIVATE -O3)
-target_compile_options(${TEST_DISPATCH_COMBINE} PRIVATE -mcpu=native)
-target_link_options(${TEST_DISPATCH_COMBINE} PRIVATE -rtlib=compiler-rt -unwindlib=libunwind)
-
-# mpi
-message(STATUS "Dispatch/Combine UT use MVAPICH.")
-target_include_directories(${TEST_DISPATCH_COMBINE} PRIVATE $ENV{MPI_PATH}/include)
-target_link_libraries(${TEST_DISPATCH_COMBINE} PRIVATE
-	-Wl,--whole-archive
+add_compile_options(-Wno-unused-variable -Wno-unused-function)
+add_compile_options(-Wno-undefined-arm-za -Wno-undefined-arm-streaming)
+include_directories($ENV{MPI_PATH}/include)
+add_link_options(
+    -Wl,--whole-archive
     $ENV{MPI_PATH}/lib/libmpi.a
     -Wl,--no-whole-archive
     -ludev -lnuma -lm -lpthread
 )
 
-# numa
-target_link_libraries(${TEST_DISPATCH_COMBINE} PRIVATE -lnuma)
 
-# kupl
-target_include_directories(${TEST_DISPATCH_COMBINE} PRIVATE $ENV{KUPL_PATH}/include)
-target_link_directories(${TEST_DISPATCH_COMBINE} PRIVATE $ENV{KUPL_PATH}/lib)
-target_link_libraries(${TEST_DISPATCH_COMBINE} PRIVATE -lkupl)
+include_directories($ENV{KUPL_PATH}/include)
+link_directories($ENV{KUPL_PATH}/lib)
+link_libraries(-lkupl)
 
-# kutacc
-target_include_directories(${TEST_DISPATCH_COMBINE} PRIVATE $ENV{KUTACC_INSTALL_ROOT}/include)
-target_link_directories(${TEST_DISPATCH_COMBINE} PRIVATE $ENV{KUTACC_INSTALL_ROOT}/lib)
-target_link_libraries(${TEST_DISPATCH_COMBINE} PRIVATE -lkutacc)
+set(TEST_DISPATCH_COMBINE test_dispatch_combine)
+add_executable(${TEST_DISPATCH_COMBINE} 
+    test_dispatch_combine.cpp 
+    low_latency/low_latency.cpp 
+    utils/memory_pool.cpp
+)

@@ -12,8 +12,6 @@
  * SOFTWARE.
  */
 #include "kurmcl_impl.h"
-int my_rank;
-int comm_size;
 
 namespace kutacc {
 
@@ -243,7 +241,7 @@ void kurmcl_txqp_init(kurmcl_ep_t *eps, int comm_size)
 }
 #endif
 
-int kurmcl_comm_create(int size, int rank, kurmcl_oob_cb_h oob_cbs, int group, kurmcl_conn_info_h *conn_info_user)
+int kurmcl_comm_create(int size, int rank, kurmcl_oob_cb_h oob_cbs, void *group, kurmcl_conn_info_h *conn_info_user)
 {
     if (size <= 0 || rank < 0 || rank >= size) {
         printf("size, rank or pid out of range\n");
@@ -265,10 +263,43 @@ int kurmcl_comm_create(int size, int rank, kurmcl_oob_cb_h oob_cbs, int group, k
     (*conn_info_user)->oob_barrier = oob_cbs->oob_barrier;
     (*conn_info_user)->oob_alltoall = oob_cbs->oob_alltoall;
     (*conn_info_user)->group = group;
-    comm_size = size;
-    my_rank = rank;
-    ds_conn_info = *conn_info_user;
+    if (ds_conn_info == nullptr) {
+        kurmcl_init(*conn_info_user);
+        kurmcl_recv_init(*conn_info_user);
+        kurmcl_build_conn(*conn_info_user);
+        ds_conn_info = *conn_info_user;
+        ds_conn_info->world_size = size;
+        ds_conn_info->world_rank = rank;
+    }
+    else {
+        if (group == ds_conn_info->group) {
+            *conn_info_user = ds_conn_info;
+        }
+        else {
+            kurmcl_mapping(ds_conn_info, *conn_info_user);
+            (*conn_info_user)->world_size = ds_conn_info->world_size;
+            (*conn_info_user)->world_rank = ds_conn_info->world_rank;
+        }
+    }
     return 0;
+}
+
+void kurmcl_mapping(kurmcl_conn_info_h global_conn_info, kurmcl_conn_info_h local_conn_info)
+{
+    int *results = (int*)malloc(local_conn_info->comm_size * sizeof(int));
+    local_conn_info->nic_used = global_conn_info->nic_used;
+    local_conn_info->dev_list = global_conn_info->dev_list;
+    local_conn_info->ifaces = global_conn_info->ifaces;
+    kurmcl_ep_t *eps = (kurmcl_ep_t *)malloc(local_conn_info->comm_size * sizeof(kurmcl_ep_t));
+    VERBS_CHECK_PTR(eps);
+
+    local_conn_info->oob_allgather(&global_conn_info->my_rank, results, 1, local_conn_info->group, KURMCL_DATATYPE_INT);
+    for (int i = 0; i < local_conn_info->comm_size; ++i) {
+        eps[i] = global_conn_info->eps[results[i]];
+    }
+    local_conn_info->eps = eps;
+    kurmcl_txqp_init(local_conn_info->eps, local_conn_info->comm_size);
+    kurmcl_barrier_init(local_conn_info, local_conn_info->comm_size);
 }
 
 void kurmcl_init(kurmcl_conn_info_t *conn_info)
@@ -280,6 +311,7 @@ void kurmcl_init(kurmcl_conn_info_t *conn_info)
     kurmcl_iface_t *ifaces;
     ifaces = (kurmcl_iface_t *)malloc(MAX_NIC_NUM * sizeof(kurmcl_iface_t));
     int nic_order[MAX_NIC_NUM];
+    int comm_size = conn_info->comm_size;
     nic_info_t nic_info[10];
     kurmcl_fill_nic_order(nic_order, nic_info, dev_list);
     for (int ii = 0; ii < MAX_NIC_NUM; ii++) {
@@ -369,7 +401,6 @@ void kurmcl_init(kurmcl_conn_info_t *conn_info)
     }
     conn_info->ifaces = ifaces;
     conn_info->eps = eps;
-    conn_info->comm_size = comm_size;  // global communication size
     // calculate the nic used
     int proc_per_node;
     int proc_per_die;
@@ -383,7 +414,7 @@ void kurmcl_init(kurmcl_conn_info_t *conn_info)
     proc_per_node = atoi(mpi_local_size);
     proc_per_die = proc_per_node / die_per_node;
     ;
-    local_rankid_in_die = my_rank % proc_per_die;
+    local_rankid_in_die = conn_info->my_rank % proc_per_die;
 
     if (proc_per_die != 1 && (proc_per_die % 2) != 0) {
         printf("fatal: proc per die should be 1 or a even number\n");
@@ -455,6 +486,7 @@ void kurmcl_finalize(kurmcl_conn_info_t *conn_info)
 {
     kurmcl_iface_t *ifaces = conn_info->ifaces;
     kurmcl_ep_t *eps = conn_info->eps;
+    int comm_size = conn_info->comm_size;
     for (int ii = 0; ii < MAX_NIC_NUM; ii++) {
         struct ibv_context *ctx = ifaces[ii].ctx;
         struct ibv_pd *pd = ifaces[ii].pd;
@@ -607,8 +639,8 @@ void kurmcl_txqp_posted(kurmcl_ep_t *ep, int send_flag, int nic_order, int iovco
 
 void kurmcl_put(kurmcl_iov_t *iovlist, int iovcount, int rank, int enable_imm, kurmcl_conn_info_t *conn_info)
 {
-    struct ibv_sge sge[100];
-    struct ibv_send_wr wr[100];
+    struct ibv_sge sge[4096];
+    struct ibv_send_wr wr[4096];
     kurmcl_ep_t *eps = conn_info->eps;
     kurmcl_iface_t *ifaces = conn_info->ifaces;
     int nic_order = conn_info->nic_used;
@@ -618,8 +650,8 @@ void kurmcl_put(kurmcl_iov_t *iovlist, int iovcount, int rank, int enable_imm, k
     kurmcl_ep_t *ep = &conn_info->eps[rank];
     send_flag = kurmcl_tx_moderation(ep, ifaces, nic_order);
 #endif
-    if (iovcount >= 100) {
-        printf("fatal: iovcnt %d larger than 10\n", iovcount);
+    if (iovcount >= 4096) {
+        printf("fatal: iovcnt %d larger than 4096\n", iovcount);
     }
 
     for (int i = 0; i < iovcount; i++) {
@@ -893,8 +925,10 @@ void kurmcl_barrier_init(kurmcl_conn_info_t *conn_info, int comm_size)
     conn_info->barrier_info = barrier_info;
 }
 
-void kurmcl_barrier(kurmcl_conn_info_t *conn_info, int size, int rank)
+void kurmcl_barrier(kurmcl_conn_info_t *conn_info)
 {
+    int size = conn_info->comm_size;
+    int rank = conn_info->my_rank;
     int adjsize, remote, mask;
     if (size == 1) {
         return;
@@ -948,16 +982,16 @@ void kurmcl_barrier(kurmcl_conn_info_t *conn_info, int size, int rank)
 }
 
 #ifdef CQE_MODERATION
-void kurmcl_flush_once (kurmcl_conn_info_t *conn_info) {
-
+void kurmcl_flush_once(kurmcl_conn_info_t *conn_info)
+{
     kurmcl_iface_t *ifaces;
     struct ibv_cq* cq;
     ifaces = conn_info->ifaces;
 
     for (int ii = 0; ii < MAX_NIC_NUM; ii++) {
         cq = ifaces[ii].scq;
+        struct ibv_wc wc[TX_MAX_POLL];
         int num_wcs = ifaces[ii].tx_max_poll;
-        struct ibv_wc wc[num_wcs];
         int num_complete = ibv_poll_cq(cq, num_wcs, wc);
         if (num_complete < 0) {
             VERBS_CHECK(num_complete);

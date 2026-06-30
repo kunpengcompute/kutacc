@@ -37,6 +37,11 @@ inline void rmsnorm_kernel(int64_t start, int64_t end, float sqrtsum, const scal
     svbfloat16_t zero_b = svdup_bf16(0);
 #pragma unroll(4)
     for (; i + STEP <= end; i += STEP) {
+#ifdef ENABLE_EXTRA_PREFETCH
+        constexpr int prf_stride = 3 * 1024 / 3 & ~63;
+        svprfh(svwhilelt_b16(i + prf_stride / 2, end), acts + i + prf_stride / 2, SV_PLDL2STRM);
+        svprfh(svwhilelt_b16(i + prf_stride / 2, end), weights + i + prf_stride / 2, SV_PLDL2STRM);
+#endif
         if constexpr (std::is_same<scalar_t, float16_t>::value) {
             svfloat16_t a = svld1(pg16, acts + i);
             svfloat32_t a0 = svcvt_f32_x(pg32, svzip1(a, zero_h));
@@ -88,10 +93,17 @@ void rmsnorm(int64_t height, int64_t width, scalar_t *acts, int64_t acts_stride,
     });
 }
 
-template void rmsnorm<__bf16, false>(int64_t height, int64_t width, __bf16 *acts, int64_t acts_stride,
+template <bool has_residual>
+void rmsnorm(int64_t height, int64_t width, bfloat16_t *acts, int64_t acts_stride, const bfloat16_t *weights, float eps,
+    bfloat16_t *residual, bfloat16_t *outs)
+{
+    rmsnorm<bfloat16_t, has_residual>(height, width, acts, acts_stride, weights, eps, residual, outs);
+}
+
+template void rmsnorm<false>(int64_t height, int64_t width, __bf16 *acts, int64_t acts_stride,
     const __bf16 *weights, float eps, __bf16 *residual, __bf16 *outs);
 
-template void rmsnorm<__bf16, true>(int64_t height, int64_t width, __bf16 *acts, int64_t acts_stride,
+template void rmsnorm<true>(int64_t height, int64_t width, __bf16 *acts, int64_t acts_stride,
     const __bf16 *weights, float eps, __bf16 *residual, __bf16 *outs);
 
 } // namespace kutacc

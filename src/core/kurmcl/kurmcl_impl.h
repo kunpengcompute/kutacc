@@ -56,8 +56,6 @@
 
 namespace kutacc {
 
-#define MAX_NIC_NUM 2
-
 typedef struct kurmcl_ep_info {
     struct ibv_qp *qp[MAX_NIC_NUM];
     struct ibv_recv_wr *rwr[MAX_NIC_NUM];
@@ -133,9 +131,11 @@ typedef struct kurmcl_conn_info {
     uint32_t remote_qpn;
     uint16_t my_lid;
     uint16_t remote_lid;
+    int world_size;
+    int world_rank;
     int comm_size;
     int my_rank;
-    int group;
+    void *group;
     int nic_used;
     union ibv_gid my_gid;
     union ibv_gid remote_gid;
@@ -180,7 +180,7 @@ void kurmcl_recv_imm_cnt(int cnt, int rank, kurmcl_conn_info_t *conn_info);
 int kurmcl_test_imm_cnt(int cnt, int rank, kurmcl_conn_info_t *conn_info);
 void kurmcl_put_nosingal(kurmcl_iov_t *iovlist, int iovcount, int rank, int enable_imm, kurmcl_conn_info_t *conn_info);
 void kurmcl_barrier_init(kurmcl_conn_info_t *conn_info, int comm_size);
-
+void kurmcl_mapping(kurmcl_conn_info_h global_conn_info, kurmcl_conn_info_h local_conn_info);
 }
 
 #endif

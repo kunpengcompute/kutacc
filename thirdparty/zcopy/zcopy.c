@@ -1,35 +1,60 @@
-#include <linux/init.h>
-#include <linux/module.h>
-#include <linux/kallsyms.h>
-#include <linux/mm.h>
-#include <linux/ioctl.h>
-#include <linux/fs.h>
-#include <linux/cdev.h>
-#include <linux/uaccess.h>
-#include <linux/vmalloc.h>
-#include <linux/version.h>
-#include <linux/kernel.h>
-#include <linux/kprobes.h>
-#include <linux/mm_types.h>
-#include <linux/list.h>
-#include <linux/kthread.h>
-#include <linux/delay.h>
-#include <linux/huge_mm.h>
-#include <linux/mm_types.h>
-#include <linux/mm_types_task.h>
-#include <linux/rmap.h>
 #include <asm-generic/pgalloc.h>
+
 #include <asm/tlbflush.h>
+
 #include <asm/pgtable.h>
+
 #include <asm/pgalloc.h>
+
 #include <asm/pgtable-hwdef.h>
+
+#include <linux/init.h>
+
+#include <linux/module.h>
+
+#include <linux/kallsyms.h>
+
+#include <linux/mm.h>
+
+#include <linux/ioctl.h>
+
+#include <linux/fs.h>
+
+#include <linux/cdev.h>
+
+#include <linux/uaccess.h>
+
+#include <linux/vmalloc.h>
+
+#include <linux/version.h>
+
+#include <linux/kernel.h>
+
+#include <linux/kprobes.h>
+
+#include <linux/mm_types.h>
+
+#include <linux/list.h>
+
+#include <linux/kthread.h>
+
+#include <linux/delay.h>
+
+#include <linux/huge_mm.h>
+
+#include <linux/mm_types.h>
+
+#include <linux/mm_types_task.h>
+
+#include <linux/rmap.h>
+
 
 /* 局部宏定义 */
 
 
 #define EN_DEBUG    1                     /* 调试信息开关 */
 #if EN_DEBUG
-#define PRINT(x...) printk(KERN_EMERG x)  /* 提高打印等级 */   
+#define PRINT(x...) printk(KERN_EMERG x)  /* 提高打印等级 */
 #else
 #define PRINT(x...)
 #endif
@@ -81,15 +106,15 @@ struct mm_struct *sls_init_mm = NULL;
 int (*__sls_pte_alloc)(struct mm_struct *mm, pmd_t *pmd);
 int (*__sls_pmd_alloc)(struct mm_struct *mm, pud_t *pud, unsigned long address);
 int (*__sls_pud_alloc)(struct mm_struct *mm, p4d_t *p4d, unsigned long address);
-//int (*__sls_p4d_alloc)(struct mm_struct *mm, pgd_t *pgd, unsigned long address);
+// int (*__sls_p4d_alloc)(struct mm_struct *mm, pgd_t *pgd, unsigned long address);
 
 #define REGISTER_CHECK(_var, _errstr)               \
     do {                                            \
-        if (!_var) {                                \
+        if (!(_var)) {                                \
             printk("Not fount %s\n", _errstr);      \
             return -1;                              \
         }                                           \
-    } while(0)
+    } while (0)
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)
 static unsigned long (*kallsyms_lookup_name_funcp)(const char *symbol_name);
@@ -116,7 +141,7 @@ static unsigned long __kprobe_lookup_name(const char *symbol_name)
 
     __kretprobe.kp.symbol_name = symbol_name;
     ret = register_kretprobe(&__kretprobe);
-    if(ret < 0) {
+    if (ret < 0) {
         pr_err("register_kprobe failed, returned %d\n", ret);
         return 0;
     }
@@ -192,37 +217,45 @@ void dump_pagetable(unsigned long addr)
     pr_alert("[%016lx] pgd=%016llx", addr, pgd_val(pgd));
 
     do {
-        p4d_t *p4dp, p4d;
-        pud_t *pudp, pud;
-        pmd_t *pmdp, pmd;
-        pte_t *ptep, pte;
+        p4d_t *p4dp;
+        p4d_t p4d;
+        pud_t *pudp;
+        pud_t pud;
+        pmd_t *pmdp;
+        pmd_t pmd;
+        pte_t *ptep;
+        pte_t pte;
 
-        if (pgd_none(pgd) || pgd_bad(pgd))
+        if (pgd_none(pgd) || pgd_bad(pgd)) {
             break;
+        }
 
         p4dp = p4d_offset(pgdp, addr);
         p4d = READ_ONCE(*p4dp);
         pr_cont(", p4d=%016llx", p4d_val(p4d));
-        if (p4d_none(p4d) || p4d_bad(p4d))
+        if (p4d_none(p4d) || p4d_bad(p4d)) {
             break;
+        }
 
         pudp = pud_offset(p4dp, addr);
         pud = READ_ONCE(*pudp);
         pr_cont(", pud=%016llx", pud_val(pud));
-        if (pud_none(pud) || pud_bad(pud))
+        if (pud_none(pud) || pud_bad(pud)) {
             break;
+        }
 
         pmdp = pmd_offset(pudp, addr);
         pmd = READ_ONCE(*pmdp);
         pr_cont(", pmd=%016llx", pmd_val(pmd));
-        if (pmd_none(pmd) || pmd_bad(pmd))
+        if (pmd_none(pmd) || pmd_bad(pmd)) {
             break;
+        }
 
         ptep = pte_offset_map(pmdp, addr);
         pte = READ_ONCE(*ptep);
         pr_cont(", pte=%016llx, pfn=:%016llx", pte_val(pte), pte_pfn(pte));
         pte_unmap(ptep);
-    } while(0);
+    } while (0);
 
     pr_cont("\n");
 }
@@ -322,12 +355,14 @@ static __always_inline unsigned long get_extent(enum pgt_entry entry,
     next = (old_addr + size) & mask;
     /* even if next overflowed, extent below will be ok */
     extent = next - old_addr;
-    if (extent > old_end - old_addr)
+    if (extent > old_end - old_addr) {
         extent = old_end - old_addr;
+    }
     pr_info("old_addr=%lx, next=%lx, size=%ld, extent=%ld\n", old_addr, next, size, extent);
     next = (new_addr + size) & mask;
-    if (extent > next - new_addr)
+    if (extent > next - new_addr) {
         extent = next - new_addr;
+    }
     pr_info("new_addr=%lx, next=%lx, size=%ld, extent=%ld\n", new_addr, next, size, extent);
     return extent;
 }
@@ -339,9 +374,14 @@ static void attach_ptes(struct vm_area_struct *src_vma, pmd_t *src_pmdp,
 {
     struct mm_struct *dst_mm = dst_vma->vm_mm;
     struct mm_struct *src_mm = src_vma->vm_mm;
-    pte_t *src_ptep, *dst_ptep, pte, orig_pte;
-    struct page *src_page, *orig_page;
-    spinlock_t *src_ptl, *dst_ptl;
+    pte_t *src_ptep;
+    pte_t *dst_ptep;
+    pte_t pte;
+    pte_t orig_pte;
+    struct page *src_page;
+    struct page *orig_page;
+    spinlock_t *src_ptl;
+    spinlock_t *dst_ptl;
     unsigned long len = src_addr_end - src_addr;
 
     pr_info("task[%lx] begin remap ptes from:[%lx, %lx] to:[%lx,..]\n", (unsigned long)current, src_addr, src_addr_end, dst_addr);
@@ -350,23 +390,24 @@ static void attach_ptes(struct vm_area_struct *src_vma, pmd_t *src_pmdp,
     dst_ptl = pte_lockptr(dst_mm, dst_pmdp);
     spin_lock_nested(dst_ptl, SINGLE_DEPTH_NESTING);
 
-    for (; src_addr < src_addr_end; src_ptep++, src_addr += PAGE_SIZE, 
+    for (; src_addr < src_addr_end; src_ptep++, src_addr += PAGE_SIZE,
                    dst_ptep++, dst_addr += PAGE_SIZE) {
         /*
          * For special pte, there may not be corresponding page. Hence,
          * we skip this situation.
          */
-        if (pte_none(*src_ptep) || pte_special(*src_ptep))
+        if (pte_none(*src_ptep) || pte_special(*src_ptep)) {
             continue;
+        }
         pte = *src_ptep;
         src_page = pte_page(pte);
         atomic_inc(&src_page->_refcount);
         atomic_inc(&src_page->_mapcount);
 
-        /* If dst virtual addr has page mapping, before setup the new mapping. 
+        /* If dst virtual addr has page mapping, before setup the new mapping.
          * we should decrease the orig page mapcount and refcount. */
         orig_pte = *dst_ptep;
-        if(!pte_none(orig_pte)) {
+        if (!pte_none(orig_pte)) {
             orig_page = pte_page(orig_pte);
             atomic_dec(&orig_page->_refcount);
             atomic_dec(&orig_page->_mapcount);
@@ -407,9 +448,12 @@ void pgtable_trans_huge_deposit(struct mm_struct *mm, pmd_t *pmdp,
 bool attach_huge_pmd(struct vm_area_struct *src_vma, struct vm_area_struct *dst_vma,
         unsigned long src_addr, unsigned long dst_addr, pmd_t *old_pmdp, pmd_t *new_pmdp)
 {
-    spinlock_t *src_ptl, *dst_ptl;
-    pmd_t pmd, orig_pmd;
-    struct page *src_thp_page, *orig_thp_page;
+    spinlock_t *src_ptl;
+    spinlock_t *dst_ptl;
+    pmd_t pmd;
+    pmd_t orig_pmd;
+    struct page *src_thp_page;
+    struct page *orig_thp_page;
     struct mm_struct *dst_mm = NULL;
     struct mm_struct *src_mm = NULL;
     pgtable_t pgtable = NULL;
@@ -447,7 +491,7 @@ bool attach_huge_pmd(struct vm_area_struct *src_vma, struct vm_area_struct *dst_
 
     spin_lock_nested(dst_ptl, SINGLE_DEPTH_NESTING);
     orig_pmd = *new_pmdp;
-    if(!pmd_none(orig_pmd)) { /* umap the old pages */
+    if (!pmd_none(orig_pmd)) { /* umap the old pages */
         orig_thp_page = pmd_page(orig_pmd);
         put_page(orig_thp_page);
         atomic_dec(compound_mapcount_ptr(orig_thp_page));
@@ -466,11 +510,14 @@ bool attach_huge_pmd(struct vm_area_struct *src_vma, struct vm_area_struct *dst_
 int attach_page_range(unsigned long dst_addr, unsigned long src_addr,
                     struct mm_struct *dst_mm, struct mm_struct *src_mm, unsigned long size)
 {
-    unsigned long extent, src_addr_end;
+    unsigned long extent;
+    unsigned long src_addr_end;
     unsigned dst_addr_begin;
-    pmd_t *old_pmd, *new_pmd;
+    pmd_t *old_pmd;
+    pmd_t *new_pmd;
     int ret = 0;
-    struct vm_area_struct *src_vma, *dst_vma;
+    struct vm_area_struct *src_vma;
+    struct vm_area_struct *dst_vma;
 
     src_addr_end = src_addr + size;
     dst_addr_begin = dst_addr;
@@ -482,24 +529,28 @@ int attach_page_range(unsigned long dst_addr, unsigned long src_addr,
         // skip remapping for pud, make case simple
         extent = get_extent(NORMAL_PMD, src_addr, src_addr_end, dst_addr);
         old_pmd = get_old_pmd(src_mm, src_addr);
-        if (!old_pmd)
+        if (!old_pmd) {
             continue;
+        }
         new_pmd = alloc_new_pmd(dst_mm, dst_addr);
-        if (!new_pmd)
+        if (!new_pmd) {
             break;
+        }
         if (is_swap_pmd(*old_pmd) || pmd_trans_huge(*old_pmd) ||
             pmd_devmap(*old_pmd)) {
                 if (extent == HPAGE_PMD_SIZE
-                        && attach_huge_pmd(src_vma, dst_vma, src_addr, dst_addr, old_pmd, new_pmd))
+                        && attach_huge_pmd(src_vma, dst_vma, src_addr, dst_addr, old_pmd, new_pmd)) {
                     continue;
+                }
             }
         
-        if (sls_pte_alloc(dst_mm, new_pmd))
+        if (sls_pte_alloc(dst_mm, new_pmd)) {
             break;
+        }
         attach_ptes(src_vma, old_pmd, src_addr, src_addr + extent, dst_vma,
                 new_pmd, dst_addr);
     }
-    //batch flush, reduce time usage
+    // batch flush, reduce time usage
     flush_tlb_range(dst_vma, dst_addr_begin, dst_addr_begin + size);
     return ret;
 }
@@ -508,34 +559,36 @@ int attach_pages(unsigned long dst_addr, unsigned long src_addr,
                     int dst_pid, int src_pid, unsigned long size)
 {
     int ret = 0;
-    struct mm_struct *dst_mm, *src_mm;
-    struct task_struct *src_task, *dst_task;
+    struct mm_struct *dst_mm;
+    struct mm_struct *src_mm;
+    struct task_struct *src_task;
+    struct task_struct *dst_task;
 
-    //src_task = find_task_by_pid_ns(src_pid, &init_pid_ns);
+    // src_task = find_task_by_pid_ns(src_pid, &init_pid_ns);
     src_task = find_get_task_by_vpid(src_pid);
-    if(src_task == NULL) {
+    if (src_task == NULL) {
         return -EINVAL;
     }
-    //dst_task = find_task_by_pid_ns(dst_pid, &init_pid_ns);
+    // dst_task = find_task_by_pid_ns(dst_pid, &init_pid_ns);
     dst_task = find_get_task_by_vpid(dst_pid);
-    if(dst_task == NULL) {
+    if (dst_task == NULL) {
         return -EINVAL;
     }
 
     src_mm = src_task->mm;
     dst_mm = dst_task->mm;
 
-    if(src_mm == dst_mm) {
+    if (src_mm == dst_mm) {
         return -EINVAL;
     }
-    if(size <= 0) {
+    if (size <= 0) {
         return -EINVAL;
     }
-    //check the addr is in userspace.
+    // check the addr is in userspace.
     if (!is_ttbr0_addr(dst_addr) || !is_ttbr0_addr(src_addr)) {
         return -EINVAL;
     }
-    if(!src_mm || !dst_mm) {
+    if (!src_mm || !dst_mm) {
         pr_err("task exit, src_mm=%lx, dst_mm=%lx\n",
                 (unsigned long)src_mm, (unsigned long)dst_mm);
         return -EINVAL;
@@ -625,7 +678,7 @@ int register_device_sls(void)
     int ret;
     /* register char device number */
     int error = alloc_chrdev_region(&s_cdev.dev, 0, 1, "sls");
-    if ( error < 0 ) {
+    if (error < 0) {
         printk(KERN_ERR "alloc chrdev failed\n");
         ret = -EBUSY;
         return ret;
@@ -638,7 +691,7 @@ int register_device_sls(void)
 
     /* add char device */
     error = cdev_add(&s_cdev.chrdev, s_cdev.dev, 1);
-    if ( error < 0 ) {
+    if (error < 0) {
         printk(KERN_ERR "add char device failed\n");
         ret = -EBUSY;
         return ret;
@@ -654,10 +707,10 @@ int register_device_sls(void)
 
     /* create device */
     s_cdev.dev_device = device_create(s_cdev.dev_class, NULL, MKDEV(s_cdev.major, 0), NULL, "dax1.0");
-    if ( NULL == s_cdev.dev_device) {
+    if (NULL == s_cdev.dev_device) {
         printk("device create error\n");
         ret = -EBUSY;
-        return ret;        
+        return ret;
     }
 
     return 0;
@@ -674,15 +727,15 @@ void unregister_device_sls(void)
 static int __init sls_init(void)
 {
     int ret;
-    PRINT("[KERNEL]:%s ------ \n",__FUNCTION__);
+    PRINT("[KERNEL]:%s ------ \n", __FUNCTION__);
     ret = register_unexport_func();
-    if(ret) {
+    if (ret) {
         printk(KERN_ERR "register_unexport_func failed\n");
         return -1;
     }
 
     ret = register_device_sls();
-    if(ret) {
+    if (ret) {
         printk(KERN_ERR "register_device_sls failed\n");
         return -1;
     }
@@ -693,7 +746,7 @@ static int __init sls_init(void)
 static void __exit sls_exit(void)
 {
     unregister_device_sls();
-    PRINT("[KERNEL]:%s ------ \n",__FUNCTION__);
+    PRINT("[KERNEL]:%s ------ \n", __FUNCTION__);
 }
 
 module_init(sls_init);

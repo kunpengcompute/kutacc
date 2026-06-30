@@ -20,6 +20,9 @@
 #include "kpmalloc.h"
 #include "check.h"
 
+#define kutacc_aarch64_dmb(_op) asm volatile("dmb " #_op ::: "memory")
+#define kutacc_memory_cpu_load_fence() kutacc_aarch64_dmb(ishld)
+
 namespace kutacc {
 template <typename T>
 struct KpMallocDeleter {

@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.22)
-
 #
 # Copyright (c) 2026 Huawei Technologies Co., Ltd. All Rights Reserved.
 #
@@ -14,11 +12,5 @@ cmake_minimum_required(VERSION 3.22)
 # SOFTWARE.
 #
 
-set(CMAKE_CXX_FLAGS "-O3 -std=c++17 -stdlib=libc++ -mcpu=native")
-
-include_directories($ENV{KUTACC_INSTALL_ROOT}/include)
-link_directories($ENV{KUTACC_INSTALL_ROOT}/lib)
-
-add_executable(test_flash_mla csrc/main.cpp csrc/mla.cpp)
-
-target_link_libraries(test_flash_mla kutacc numa)
+add_subdirectory(dense_decode)
+add_subdirectory(sparse_decode)

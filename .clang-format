@@ -1,0 +1,27 @@
+Language: Cpp
+BasedOnStyle: Google
+IndentWidth: 4
+TabWidth: 4
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  AfterControlStatement: false
+  AfterClass: false
+  AfterStruct: false
+  SplitEmptyFunction: true
+ColumnLimit: 120
+SortIncludes: false
+AllowShortFunctionsOnASingleLine: None
+AlignAfterOpenBracket: DontAlign
+ContinuationIndentWidth: 4
+AccessModifierOffset: -4
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+PointerAlignment: Right
+DerivePointerAlignment: false
+BinPackArguments: true
+BinPackParameters: true
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+MaxEmptyLinesToKeep: 1
+...

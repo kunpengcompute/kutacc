@@ -11,6 +11,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#pragma once
 #include <algorithm>
 #include <arm_sve.h>
 #include <arm_neon.h>
@@ -20,5 +21,9 @@ namespace kutacc {
 void quant(int64_t height, int64_t width, const __bf16 *input, int64_t input_stride, int8_t *out, int64_t out_stride,
     float *scale);
 
-void quant_pack(bfloat16_t *input_data, int8_t *output_data, float *scale_data, int hidden_size, int num_tokens);
+void quant_pack(int64_t height, int64_t width, bfloat16_t* input_data, int8_t* output_data, float* scale_data);
+
+void quant_save_pack(int64_t height, int64_t width, bfloat16_t* input_data, int64_t ldo, int8_t* output_data,
+    int64_t lds, float* scale_data, int8_t* packed_output_data, float* packed_scale_data);
+
 } // namespace kutacc

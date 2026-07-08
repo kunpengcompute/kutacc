@@ -41,6 +41,7 @@ namespace internal {
         check_fail_print(stream, std::forward<Args>(args)...);
         stream << "\n";
         std::cerr << stream.str();
+        exit(1);
     }
 
 }   // namespace internal

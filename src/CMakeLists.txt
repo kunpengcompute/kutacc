@@ -13,9 +13,17 @@
 #
 
 # Check debug mode
-if (CMAKE_BUILD_TYPE MATCHES "Release")
+if (CMAKE_BUILD_TYPE MATCHES "Debug")
+    set(ENABLE_KUTACC_DEBUG ON)
+    set(ENABLE_KUTACC_ASSERT ON)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wfloat-equal -fno-common -march=armv8.2-a+bf16+sve -msve-vector-bits=512 -fPIC -fopenmp")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wfloat-equal -fno-common -march=armv8.2-a+bf16+sve -msve-vector-bits=512 -fPIC -fopenmp")
+    set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -Wall -Wextra -Wfloat-equal -fno-common -march=armv8.2-a+bf16+sve -msve-vector-bits=512 -fPIC -fopenmp")
+    add_compile_options(-O0 -g -gdwarf-4)
+    message("-- Caution : using debug mode, performance is bad, just for develop")
+elseif (CMAKE_BUILD_TYPE MATCHES "Release")
     set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -mcpu=native")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcpu=native -Wno-undefined-arm-za -Wno-undefined-arm-streaming -rtlib=compiler-rt -w")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcpu=native -Wno-vla-cxx-extension -Wno-undefined-arm-za -Wno-undefined-arm-streaming -msve-vector-bits=512 -rtlib=compiler-rt")
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-field-initializers")
@@ -30,6 +38,11 @@ include(${KUTACC_CMAKE_INCLUDE_PATH}/libkutacc_source_files.cmake)
 libkutacc_source_files(KUTACC_SRCS)
 add_library(${LIBKUTACC_NAME} SHARED ${KUTACC_SRCS})
 
+if (KUTACC_ENABLE_EXTRA_PREFETCH STREQUAL "on")
+    message("-- kutacc enable extra prefetch instructions")
+    add_definitions(-DENABLE_EXTRA_PREFETCH)
+endif()
+
 if (KUTACC_PARALLEL_BACKEND STREQUAL "omp")
     message("-- kutacc parallel backend is set to omp")
     add_definitions(-DUSE_OMP_PARALLEL)
@@ -37,6 +50,10 @@ if (KUTACC_PARALLEL_BACKEND STREQUAL "omp")
 elseif (KUTACC_PARALLEL_BACKEND STREQUAL "kupl")
     message("-- kutacc parallel backend is set to kupl")
     add_definitions(-DUSE_KUPL_PARALLEL)
+    target_link_libraries(${LIBKUTACC_NAME} kupl)
+elseif (KUTACC_PARALLEL_BACKEND STREQUAL "kupl_global")
+    message("-- kutacc parallel backend is set to kupl-global")
+    add_definitions(-DUSE_KUPL_GLOBAL_PARALLEL)
     target_link_libraries(${LIBKUTACC_NAME} kupl)
 endif()
 
@@ -89,7 +106,6 @@ target_link_libraries(${LIBKUTACC_NAME}
     /usr/lib64/libibverbs/libocrdma-rdmav34.so
     /usr/lib64/libibverbs/libirdma-rdmav34.so)
 
-add_definitions(-DCOMM_PERF)
 
 set_target_properties(${LIBKUTACC_NAME} PROPERTIES VERSION 25.1.RC1)
 

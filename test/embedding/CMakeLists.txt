@@ -12,13 +12,6 @@
 # SOFTWARE.
 #
 
-set(CMAKE_CXX_FLAGS "-std=c++17 -stdlib=libc++")
-add_compile_options(-Wall -Wextra -Wpedantic)
-add_compile_options(-march=armv8.2-a+sve2+bf16+sme -msve-vector-bits=512)
-add_link_options(-rtlib=compiler-rt -unwindlib=libunwind)
-
 # test_embedding
 set(TEST_EMBEDDING test_embedding)
 add_executable(${TEST_EMBEDDING} test_embedding.cpp)
-target_link_directories(${TEST_EMBEDDING} PRIVATE $ENV{KUTACC_INSTALL_ROOT}/lib)
-target_link_libraries(${TEST_EMBEDDING} PRIVATE -lkutacc)

@@ -50,6 +50,13 @@ inline void rmsnorm_quant_kernel(int64_t start, int64_t end, float quant_scale, 
         svfloat32_t w10 = svreinterpret_f32(svzip1(zero_b, w1));
         svfloat32_t w11 = svreinterpret_f32(svzip2(zero_b, w1));
 
+#ifdef ENABLE_EXTRA_PREFETCH
+        constexpr int prf_stride = 3 * 1024 / 5;
+        svprfh(svwhilelt_b16(i + prf_stride, end), acts + i + prf_stride, SV_PLDL2STRM);
+        svprfh(svwhilelt_b16(i + STEP + prf_stride, end), acts + i + STEP + prf_stride, SV_PLDL2STRM);
+        svprfh(svwhilelt_b16(i + prf_stride, end), weights + i + prf_stride, SV_PLDL2STRM);
+        svprfh(svwhilelt_b16(i + STEP + prf_stride, end), weights + i + STEP + prf_stride, SV_PLDL2STRM);
+#endif
         svfloat32_t o00 = svmul_x(pg32, svmul_x(pg32, a00, quant_scale), w00);
         svfloat32_t o01 = svmul_x(pg32, svmul_x(pg32, a01, quant_scale), w01);
         svfloat32_t o10 = svmul_x(pg32, svmul_x(pg32, a10, quant_scale), w10);
@@ -71,31 +78,44 @@ inline void rmsnorm_quant_kernel(int64_t start, int64_t end, float quant_scale, 
 
 template <typename scalar_t, bool has_residual>
 void rmsnorm_quant(int64_t height, int64_t width, scalar_t *acts, int64_t acts_stride, const scalar_t *weights,
-    float eps, scalar_t *residual, int8_t *outs, float *scales)
+    float eps, scalar_t *residual, int64_t res_stride, int8_t *outs, int64_t outs_stride, float *scales,
+    int64_t scales_stride)
 {
     kutacc::parallel_for(0, height, 1, [&](int64_t start, int64_t end) {
         for (int64_t i = start; i < end; i++) {
             float quant_scale;
-            int64_t offset = i * width;
+            int64_t resi_offset = i * res_stride;
             int64_t acts_offset = i * acts_stride;
-            int64_t outs_offset = i * width;
+            int64_t outs_offset = i * outs_stride;
             if constexpr (has_residual) {
-                get_sum_quant<scalar_t, has_residual>(width, acts + acts_offset, weights, eps, residual + offset,
-                    quant_scale, scales[i]);
-                rmsnorm_quant_kernel<scalar_t>(0, width, quant_scale, residual + offset, weights, outs + outs_offset);
+                get_quant_scale<scalar_t, has_residual>(width, acts + acts_offset, weights, eps, residual + resi_offset,
+                    quant_scale, scales[i * scales_stride]);
+                rmsnorm_quant_kernel<scalar_t>(
+                    0, width, quant_scale, residual + resi_offset, weights, outs + outs_offset);
             } else {
-                get_sum_quant<scalar_t, has_residual>(width, acts + acts_offset, weights, eps, nullptr, quant_scale,
-                    scales[i]);
+                get_quant_scale<scalar_t, has_residual>(width, acts + acts_offset, weights, eps, nullptr, quant_scale,
+                    scales[i * scales_stride]);
                 rmsnorm_quant_kernel<scalar_t>(0, width, quant_scale, acts + acts_offset, weights, outs + outs_offset);
             }
         }
     });
 }
 
-template void rmsnorm_quant<__bf16, false>(int64_t height, int64_t width, __bf16 *acts, int64_t acts_stride,
-    const __bf16 *weights, float eps, __bf16 *residual, int8_t *outs, float *scales);
+template <bool has_residual>
+void rmsnorm_quant(int64_t height, int64_t width, bfloat16_t *acts, int64_t acts_stride, const bfloat16_t *weights,
+    float eps, bfloat16_t *residual, int64_t res_stride, int8_t *outs, int64_t outs_stride, float *scales,
+    int64_t scales_stride)
+{
+    rmsnorm_quant<bfloat16_t, has_residual>(height, width, acts, acts_stride, weights, eps, residual, res_stride, outs,
+        outs_stride, scales, scales_stride);
+}
 
-template void rmsnorm_quant<__bf16, true>(int64_t height, int64_t width, __bf16 *acts, int64_t acts_stride,
-    const __bf16 *weights, float eps, __bf16 *residual, int8_t *outs, float *scales);
+template void rmsnorm_quant<false>(int64_t height, int64_t width, __bf16 *acts, int64_t acts_stride,
+    const __bf16 *weights, float eps, __bf16 *residual, int64_t res_stride, int8_t *outs, int64_t outs_stride,
+    float *scales, int64_t scales_stride);
+
+template void rmsnorm_quant<true>(int64_t height, int64_t width, __bf16 *acts, int64_t acts_stride,
+    const __bf16 *weights, float eps, __bf16 *residual, int64_t res_stride, int8_t *outs, int64_t outs_stride,
+    float *scales, int64_t scales_stride);
 
 } // namespace kutacc

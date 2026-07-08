@@ -12,19 +12,10 @@
 # SOFTWARE.
 #
 
-set(CMAKE_CXX_FLAGS "-std=c++17 -stdlib=libc++")
-add_compile_options(-Wall -Wextra -Wpedantic)
-add_compile_options(-march=armv8.2-a+sve2+bf16+sme -msve-vector-bits=512)
-add_link_options(-rtlib=compiler-rt -unwindlib=libunwind)
-
 # test_rmsnorm
 set(TEST_RMSNORM test_rmsnorm)
 add_executable(${TEST_RMSNORM} test_rmsnorm.cpp)
-target_link_directories(${TEST_RMSNORM} PRIVATE $ENV{KUTACC_INSTALL_ROOT}/lib)
-target_link_libraries(${TEST_RMSNORM} PRIVATE -lkutacc)
 
 # test_rmsnorm_quant
 set(TEST_RMSNORM_QUANT test_rmsnorm_quant)
 add_executable(${TEST_RMSNORM_QUANT} test_rmsnorm_quant.cpp)
-target_link_directories(${TEST_RMSNORM_QUANT} PRIVATE $ENV{KUTACC_INSTALL_ROOT}/lib)
-target_link_libraries(${TEST_RMSNORM_QUANT} PRIVATE -lkutacc)

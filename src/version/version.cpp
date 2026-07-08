@@ -15,9 +15,9 @@
 
 const kutacc_version_t g_version = {
     .product_name = "Kunpeng HPCKit",
-    .product_version = "25.1.RC1",
+    .product_version = "26.1.RC1",
     .component_name = "KuTACC",
-    .component_version = "25.1.RC1",
+    .component_version = "26.1.RC1_dist_infer",
 #if defined(__clang__)
     .component_appendinfo = "bisheng",
 #elif defined(__GNUC__)

@@ -12,45 +12,34 @@
 # SOFTWARE.
 #
 
-set(CMAKE_CXX_FLAGS "-std=c++17 -stdlib=libc++")
-add_compile_options(-Wall -Wextra -Wpedantic)
-add_compile_options(-march=armv8.2-a+sve2+bf16+sme -msve-vector-bits=512)
-add_link_options(-rtlib=compiler-rt -unwindlib=libunwind)
+add_compile_options(-Wextra -Wpedantic)
 
 include_directories(${CMAKE_SOURCE_DIR}/tool)
 
-# test_igemm_bdq
-set(TEST_IGEMM_DBQ test_igemm_bdq)
-add_executable(${TEST_IGEMM_DBQ} test_igemm_bdq.cpp)
-target_link_directories(${TEST_IGEMM_DBQ} PRIVATE $ENV{KUTACC_INSTALL_ROOT}/lib)
-target_link_libraries(${TEST_IGEMM_DBQ} PRIVATE -lkutacc)
+# test_s8_s8_packed_gemm_bf16_dq
+set(TEST_S8_S8_PACKED_GEMM_BF16_DQ test_s8_s8_packed_gemm_bf16_dq)
+add_executable(${TEST_S8_S8_PACKED_GEMM_BF16_DQ} test_s8_s8_packed_gemm_bf16_dq.cpp)
 
-# test_bgemm
-set(TEST_BGEMM test_bgemm)
-add_executable(${TEST_BGEMM} test_bgemm.cpp)
-target_link_directories(${TEST_BGEMM} PRIVATE $ENV{KUTACC_INSTALL_ROOT}/lib)
-target_link_libraries(${TEST_BGEMM} PRIVATE -lkutacc)
+# test_fusedmoe
+set(TEST_FUSEDMOE test_fusedmoe)
+add_executable(${TEST_FUSEDMOE} test_fusedmoe.cpp)
 
-# test_batched_gemm_woqs8
-set(TEST_BATCHED_GEMM_WOQS8 test_batched_gemm_woqs8)
-add_executable(${TEST_BATCHED_GEMM_WOQS8} test_batched_gemm_woqs8.cpp)
-target_link_directories(${TEST_BATCHED_GEMM_WOQS8} PRIVATE $ENV{KUTACC_INSTALL_ROOT}/lib)
-target_link_libraries(${TEST_BATCHED_GEMM_WOQS8} PRIVATE -lkutacc)
+# test_bf16_packed_gemm
+set(TEST_BF16_PACKED_GEMM test_bf16_packed_gemm)
+add_executable(${TEST_BF16_PACKED_GEMM} test_bf16_packed_gemm.cpp)
 
-# test_igemm_pack
-set(TEST_IGEMM_PACK test_igemm_pack)
-add_executable(${TEST_IGEMM_PACK} test_igemm_pack.cpp)
-target_link_directories(${TEST_IGEMM_PACK} PRIVATE $ENV{KUTACC_INSTALL_ROOT}/lib)
-target_link_libraries(${TEST_IGEMM_PACK} PRIVATE -lkutacc)
+# test_batch_bf16_s8_packed_gemm_bf16
+set(TEST_BATCHED_BF16_S8_GEMM_BF16 test_batch_bf16_s8_packed_gemm_bf16)
+add_executable(${TEST_BATCHED_BF16_S8_GEMM_BF16} test_batch_bf16_s8_packed_gemm_bf16.cpp)
 
-# test_bgemm_pack
-set(TEST_BGEMM_PACK test_bgemm_pack)
-add_executable(${TEST_BGEMM_PACK} test_bgemm_pack.cpp)
-target_link_directories(${TEST_BGEMM_PACK} PRIVATE $ENV{KUTACC_INSTALL_ROOT}/lib)
-target_link_libraries(${TEST_BGEMM_PACK} PRIVATE -lkutacc)
+# test_s8_gemm_pack
+set(TEST_S8_GEMM_PACK test_s8_gemm_pack)
+add_executable(${TEST_S8_GEMM_PACK} test_s8_gemm_pack.cpp)
 
-# test_batched_gemm_pack
-set(TEST_BATCHED_GEMM_PACK test_batched_gemm_pack)
-add_executable(${TEST_BATCHED_GEMM_PACK} test_batched_gemm_pack.cpp)
-target_link_directories(${TEST_BATCHED_GEMM_PACK} PRIVATE $ENV{KUTACC_INSTALL_ROOT}/lib)
-target_link_libraries(${TEST_BATCHED_GEMM_PACK} PRIVATE -lkutacc)
+# test_bf16_gemm_pack
+set(TEST_BF16_GEMM_PACK test_bf16_gemm_pack)
+add_executable(${TEST_BF16_GEMM_PACK} test_bf16_gemm_pack.cpp)
+
+# test_batch_bf16_gemm_pack
+set(TEST_BATCHED_BF16_GEMM_PACK test_batch_bf16_gemm_pack)
+add_executable(${TEST_BATCHED_BF16_GEMM_PACK} test_batch_bf16_gemm_pack.cpp)

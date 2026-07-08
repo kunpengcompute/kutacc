@@ -15,18 +15,31 @@
 # find all source files to compiler kutacc library
 function(libkutacc_source_files src_files)
     file(GLOB_RECURSE kutacc_srcs
+        glu/*.cpp
+        alphafold3/*.cpp
+        async/*.cpp
         comm/*.cpp
         core/*.cpp
         core/matmul/*.cpp
         core/matmul/*.S
         embedding/*.cpp
+        math/*.cpp
+        rope/*.cpp
+        silu_mul/*.cpp
+        mem_op/*.cpp
         tensor/*.cpp
         rmsnorm/*.cpp
         utils/*.cpp
         version/*.cpp
         attention/*.cpp
+        fusedmoe/*.cpp
+        mtp_op/*.cpp
+        sample/*.cpp
         moe/*.cpp
+        pp/*.cpp
+        mt/*.cpp
         core/kurmcl/*.cpp
+        mul_scalar_add/*.cpp
     )
     set(${src_files} ${kutacc_srcs} PARENT_SCOPE)
 endfunction()

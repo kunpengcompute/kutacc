@@ -11,16 +11,17 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
 #ifndef SIGMOID_H
 #define SIGMOID_H
 
 #include <cmath>
 #include <type_traits>
 
-#include "../math/fast_exp.h"
-#include "../wrapper/wrapper.h"
-
+#include "math/fast_exp.h"
+#include "alphafold3/wrapper/wrapper.h"
 namespace kutacc {
+
 class Sigmoid {
 public:
     /**

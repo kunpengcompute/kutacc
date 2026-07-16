@@ -1410,9 +1410,9 @@ kutacc_export void silu_mul_quant(int64_t gateupsize, int64_t gateupnumel, int8_
 /**
  * @brief MSA attention core SME compute kernel
  *
- * @param [in] logits     Attention score logits, float buffer
- * @param [in] v          Value feature input [b, q, c], bfloat16
- * @param [out] v_avg     Weighted average value output [b, q, c], bfloat16
+ * @param [in] logits     Attention score logits [h, q, k], float
+ * @param [in] v          Value feature input [b, h, k, c], bfloat16
+ * @param [out] v_avg     Weighted average value output [b, h, q, c], bfloat16
  * @param [in] h          Number of attention heads
  * @param [in] q          Query sequence length
  * @param [in] k          Key sequence length
@@ -1425,13 +1425,13 @@ kutacc_export void msa_attention_sme(float* logits, bfloat16_t* v, bfloat16_t* v
  * @brief MSA attention linear projection kernel
  *
  * @param [in] act             Input feature [batch, seq_len, nchannels]
- * @param [in] pair_act        Pair bias input feature
- * @param [in] pair_logits     Pair bias logits buffer
- * @param [in] v               Value feature input
- * @param [in] gate            Gating feature input
- * @param [in] pair_logits_w   Weight for pair bias logits
- * @param [in] value_w         Value projection weight
- * @param [in] gating_w       Gating projection weight
+ * @param [in] pair_act        Pair act input feature [output_batches, seq_len, noutput_channels]
+ * @param [out] pair_logits    Pair logits buffer [output_batche, seq_len, nheads]
+ * @param [out] v              Value feature [batch, seq_len, nchannels]
+ * @param [out] gate           Gating feature [batch, seq_len, nchannels]
+ * @param [in] pair_logits_w   Weight for pair logits [noutput_channels, nheads]
+ * @param [in] value_w         Value projection weight [nchannels, nchannels]
+ * @param [in] gating_w        Gating projection weight [nchannels, nchannels]
  * @param [in] batch           Batch dimension size
  * @param [in] seq_len         Sequence token length
  * @param [in] nchannels       Input hidden dimension
@@ -1444,12 +1444,12 @@ kutacc_export void msa_attention_linear(bfloat16_t *act, bfloat16_t *pair_act, b
     int64_t noutput_channels, int64_t output_batches);
 
 /**
- * @brief MSA attention output weighted average + gate fusion
+ * @brief MSA attention output linear and sigmoid kernel
  *
- * @param [in] v          Weighted value feature
- * @param [in] v_avg      Raw weighted average value
- * @param [in] gate       Gating activation
- * @param [out] out       Final fused MSA output
+ * @param [in] v          Weighted value feature [batch, seq_len, nchannels]
+ * @param [in] v_avg      Weighted average value [batch, seq_len, nchannels]
+ * @param [in] gate       Gating activation [batch, seq_len, nchannels]
+ * @param [out] out       Final fused MSA output [batch, seq_len, nchannels]
  * @param [in] batch      Batch size
  * @param [in] seq_len    Sequence length
  * @param [in] nchannels  Hidden channel dimension
@@ -1457,10 +1457,10 @@ kutacc_export void msa_attention_linear(bfloat16_t *act, bfloat16_t *pair_act, b
 kutacc_export void msa_attention_out(bfloat16_t *v, bfloat16_t *v_avg, bfloat16_t *gate, bfloat16_t *out, int64_t batch, int64_t seq_len, int64_t nchannels);
 
 /**
- * @brief Transpose tensor B N H D -> B H N D (D=1)
+ * @brief Transpose tensor B N H D -> B H N D
  *
- * @param [in] in  Input tensor shape [B, N, H]
- * @param [out] o  Output tensor shape [B, H, N]
+ * @param [in] in  Input tensor shape [B, N, H, D]
+ * @param [out] o  Output tensor shape [B, H, N, D]
  * @param [in] B   Batch size
  * @param [in] H   Head / second dimension
  * @param [in] N   Token / first inner dimension
@@ -1472,9 +1472,9 @@ kutacc_export void mha_transpose_s_h(bfloat16_t* in, bfloat16_t* o, int B, int H
  * @brief Linear projection without bias, support packed input weight
  *
  * @tparam T Output buffer data type
- * @param [in] xptr         Input feature buffer
- * @param [in] wptr         Linear weight matrix
- * @param [out] resultptr   Linear output buffer
+ * @param [in] xptr         Input feature buffer, [bucket, hidden_size]
+ * @param [in] wptr         Linear weight matrix [hidden_size, num_channels]
+ * @param [out] resultptr   Linear output buffer [bucket, num_channels]
  * @param [in] bucket       Block bucket partition size
  * @param [in] num_channels Input feature channels
  * @param [in] hidden_size  Output hidden dimension
@@ -1486,11 +1486,11 @@ kutacc_export void linear_nobias(bfloat16_t* xptr, bfloat16_t* wptr, T* resultpt
 /**
  * @brief Linear projection with bias + sigmoid activation
  *
- * @param [in] single_cond_ptr Input feature
- * @param [in] wptr            Linear weight matrix
- * @param [in] bptr            Bias vector (float)
- * @param [out] resultptr      Float intermediate output before cast
- * @param [out] resultptr_bf16 Bfloat16 cast final output
+ * @param [in] single_cond_ptr Input feature [bucket, hidden_size]
+ * @param [in] wptr            Linear weight matrix [hidden_size, num_channels]
+ * @param [in] bptr            Bias vector (float) [num_channels]
+ * @param [in] resultptr       Float intermediate output before cast [samples, bucket, num_channels]
+ * @param [out] resultptr_bf16 Bfloat16 cast final output [samples, bucket, num_channels]
  * @param [in] samples         Total sample count
  * @param [in] bucket          Block bucket partition size
  * @param [in] num_channels    Input feature channels
@@ -1513,8 +1513,8 @@ kutacc_export void layernorm_noparams(float* x, int B, int M, int N, float eps);
 /**
  * @brief LayerNorm + cast to bfloat16 with pack transform
  *
- * @param [in] x          Float input feature
- * @param [out] x_r       Packed bfloat16 normalized feature
+ * @param [in] x          Float input feature [M, N]
+ * @param [out] x_r       Packed bfloat16 normalized feature [M, N]
  * @param [in] ln_weight  LayerNorm scale weight
  * @param [in] ln_bias    LayerNorm shift bias
  * @param [in] M          Sequence length
@@ -1526,7 +1526,7 @@ kutacc_export void layernorm_pack_bf16(float* x, bfloat16_t* x_r, float* ln_weig
 /**
  * @brief Adaptive layer norm merge conditional scale/shift + optional pack
  *
- * @param [in] x          Raw float input feature
+ * @param [in] x         Raw float input feature
  * @param [in] s_c       Conditional scale bias bfloat16
  * @param [in] s_w       Conditional scale weight bfloat16
  * @param [in] s_b       Conditional shift float bias
@@ -1536,7 +1536,7 @@ kutacc_export void layernorm_pack_bf16(float* x, bfloat16_t* x_r, float* ln_weig
  * @param [in] D         Main hidden dimension
  * @param [in] D1        Conditional branch hidden dimension
  * @param [out] pack_x   Packed normalized output
- * @param [in] dopack    Enable matrix pack transform flag
+ * @param [in] dopack    Flag whether output matrix need packed
  */
 kutacc_export void adpln_merge_bf16(float* x, bfloat16_t* s_c, bfloat16_t* s_w, float* s_b, bfloat16_t* c_b2, int B, int M, int D, int D1, bfloat16_t* pack_x, bool dopack);
 
@@ -1763,18 +1763,18 @@ kutacc_export void glu_swish(x_t* xptr, r_t* resultptr, int shape0, int bucket, 
 kutacc_export void self_attention_out(bfloat16_t* weighted_avg, bfloat16_t* gate, bfloat16_t* pack_wavg, int ndim, int batch, int seq_len, int nchannels, bool dopack);
 
 /**
- * @brief Self attention Q/K/V/G linear projection + transpose, no single token branch
+ * @brief Self attention Q/K/V/G linear projection + transpose, no single_cond
  *
- * @param [in] x             Input feature [batch, seq_len, nchannels]
- * @param [in] q_proj        Q projection weight
- * @param [in] q_proj_bias   Q bias float buffer
- * @param [in] k_proj        K projection weight
- * @param [in] v_proj        V projection weight
- * @param [in] g_proj        Gate projection weight
- * @param [out] q            Transposed Q [batch, nheads, seq_len, head_size]
- * @param [out] k            Transposed K
- * @param [out] v            Transposed V
- * @param [out] g            Transposed gate
+ * @param [in] x             Input feature [batch, seq_len, nheads * head_size]
+ * @param [in] q_proj        Q projection weight [nheads * head_size, nheads * head_size]
+ * @param [in] q_proj_bias   Q bias float buffer [nheads * head_size]
+ * @param [in] k_proj        K projection weight [nheads * head_size, nheads * head_size]
+ * @param [in] v_proj        V projection weight [nheads * head_size, nheads * head_size]
+ * @param [in] g_proj        Gate projection weight [nheads * head_size, nheads * head_size]
+ * @param [out] q            Transposed Q feature[batch, nheads, seq_len, head_size]
+ * @param [out] k            Transposed K feature[batch, nheads, seq_len, head_size]
+ * @param [out] v            Transposed V feature[batch, nheads, seq_len, head_size]
+ * @param [out] g            gate feature[batch, seq_len, nheads, head_size]
  * @param [in] batch         Batch size
  * @param [in] seq_len       Sequence token length
  * @param [in] nheads        Attention head count
@@ -1784,18 +1784,18 @@ kutacc_export void self_attention_linear_transpose_nosingle(bfloat16_t* x, bfloa
      bfloat16_t* q, bfloat16_t* k, bfloat16_t* v, bfloat16_t* g, int batch, int seq_len, int nheads, int head_size);
 
 /**
- * @brief Self attention Q/K/V/G linear projection + transpose full version
+ * @brief Self attention Q/K/V/G linear projection + transpose
  *
- * @param [in] x             Input feature [batch, seq_len, nchannels]
- * @param [in] q_proj        Q projection weight
- * @param [in] q_proj_bias   Q bias float buffer
- * @param [in] k_proj        K projection weight
- * @param [in] v_proj        V projection weight
- * @param [in] g_proj        Gate projection weight
- * @param [out] q            Transposed Q [batch, nheads, seq_len, head_size]
- * @param [out] k            Transposed K
- * @param [out] v            Transposed V
- * @param [out] g            Transposed gate
+ * @param [in] x             Input feature [batch, seq_len, nheads * head_size]
+ * @param [in] q_proj        Q projection weight [nheads * head_size, nheads * head_size]
+ * @param [in] q_proj_bias   Q bias float buffer [nheads * head_size]
+ * @param [in] k_proj        K projection weight [nheads * head_size, nheads * head_size]
+ * @param [in] v_proj        V projection weight [nheads * head_size, nheads * head_size]
+ * @param [in] g_proj        Gate projection weight [nheads * head_size, nheads * head_size]
+ * @param [out] q            Transposed Q feature[batch, nheads, seq_len, head_size]
+ * @param [out] k            Transposed K feature[batch, nheads, seq_len, head_size]
+ * @param [out] v            Transposed V feature[batch, nheads, seq_len, head_size]
+ * @param [out] g            Gate feature[batch, seq_len, nheads, head_size]
  * @param [in] batch         Batch size
  * @param [in] seq_len       Sequence token length
  * @param [in] nheads        Attention head count
@@ -1821,17 +1821,17 @@ kutacc_export void cross_attention_out_pack(bfloat16_t* weighted_avg, bfloat16_t
 /**
  * @brief Cross attention Q/K/V/G linear projection + transpose kernel
  *
- * @param [in] x_q           Query side input feature
- * @param [in] x_k           Key-value side input feature
- * @param [in] q_proj        Q projection weight
- * @param [in] q_proj_bias   Q bias float buffer
- * @param [in] k_proj        K projection weight
- * @param [in] v_proj        V projection weight
- * @param [in] g_proj        Gate projection weight
- * @param [out] q            Transposed Q feature
- * @param [out] k            Transposed K feature
- * @param [out] v            Transposed V feature
- * @param [out] g            Transposed gate feature
+ * @param [in] x_q           Query side input feature [batch_q, seq_len_q, nheads * head_size]
+ * @param [in] x_k           Key-value side input feature [batch_k, seq_len_k, nheads * head_size]
+ * @param [in] q_proj        Q projection weight [nheads * head_size, nheads * head_size]
+ * @param [in] q_proj_bias   Q bias float buffer [nheads * head_size]
+ * @param [in] k_proj        K projection weight [nheads * head_size, nheads * head_size]
+ * @param [in] v_proj        V projection weight [nheads * head_size, nheads * head_size]
+ * @param [in] g_proj        Gate projection weight [nheads * head_size, nheads * head_size]
+ * @param [out] q            Transposed Q feature [batch_q, nheads, seq_len_q, head_size]
+ * @param [out] k            Transposed K feature [batch_k, nheads, seq_len_k, head_size]
+ * @param [out] v            Transposed V feature [batch_k, nheads, seq_len_k, head_size]
+ * @param [out] g            gate feature [batch_q, seq_len_q, nheads, head_size]
  * @param [in] batch_q       Query batch size
  * @param [in] seq_len_q     Query token length
  * @param [in] batch_k       Key-value batch size
@@ -1896,23 +1896,23 @@ kutacc_export void gridself_attention_bias_linear(bfloat16_t* input, bfloat16_t*
 /**
  * @brief Grid self attention Q/K/V/G/pair bias linear + transpose, support transpose flag
  *
- * @param [in] x             Raw input feature
- * @param [out] pack_x       Packed input tile buffer
- * @param [in] q_proj        Q projection weight
- * @param [in] k_proj        K projection weight
- * @param [in] v_proj        V projection weight
- * @param [in] g_proj        Gate projection weight
- * @param [in] pbias_proj    Pair bias projection weight
- * @param [out] q            Transposed Q feature
- * @param [out] k            Transposed K feature
- * @param [out] v            Transposed V feature
- * @param [out] g            Transposed gate feature
- * @param [out] pair_bias    Transposed pair bias logits
+ * @param [in] x             Raw input feature [batch, seq_len, nheads, head_size](trans = false) / [seq_len, batch, nheads, head_size](trans = true)
+ * @param [in] pack_x        Packed input buffer [batch, seq_len, nheads, head_size](trans = false) / [seq_len, batch, nheads, head_size](trans = true)
+ * @param [in] q_proj        Q projection weight [nheads*head_size, nheads*head_size]
+ * @param [in] k_proj        K projection weight [nheads*head_size, nheads*head_size]
+ * @param [in] v_proj        V projection weight [nheads*head_size, nheads*head_size]
+ * @param [in] g_proj        Gate projection weight [nheads*head_size, nheads*head_size]
+ * @param [in] pbias_proj    Pair bias projection weight [nheads*head_size, nheads]
+ * @param [out] q            Transposed Q feature[batch, nheads, seq_len, head_size]
+ * @param [out] k            Transposed K feature[batch, nheads, seq_len, head_size]
+ * @param [out] v            Transposed V feature[batch, nheads, seq_len, head_size]
+ * @param [out] g            Gate feature[batch, seq_len, nheads, head_size]
+ * @param [out] pair_bias    pair bias [batch, seq_len, nheads]
  * @param [in] batch         Batch size
  * @param [in] seq_len       Sequence token length
  * @param [in] nheads        Attention head count
  * @param [in] head_size     Per-head hidden dim
- * @param [in] trans         Extra transpose enable flag
+ * @param [in] trans         Flag whether input matrix and Q/K/V/G is transposed in dim0 and dim1
  */
 kutacc_export void gridself_attention_linear_transpose_trans(bfloat16_t* x, bfloat16_t* pack_x, bfloat16_t* q_proj, bfloat16_t* k_proj, bfloat16_t* v_proj, bfloat16_t* g_proj,
 bfloat16_t* pbias_proj, bfloat16_t* q, bfloat16_t* k, bfloat16_t* v, bfloat16_t* g, bfloat16_t* pair_bias, int batch, int seq_len, int nheads, int head_size, bool trans);
@@ -1922,8 +1922,8 @@ bfloat16_t* pbias_proj, bfloat16_t* q, bfloat16_t* k, bfloat16_t* v, bfloat16_t*
  *
  * @param [in] weight      Raw weight matrix
  * @param [out] packed_weight Pre-packed tile buffer for SME BGEMM
- * @param [in] M           Output channel dim
- * @param [in] N           Input channel dim
+ * @param [in] M           Matrix dim0 shape 
+ * @param [in] N           Matrix dim1 shape
  */
 kutacc_export void bgemm_pack_weight_bf16(bfloat16_t *weight,bfloat16_t *packed_weight,int M, int N);
 
@@ -1954,7 +1954,7 @@ kutacc_export void glu_pack_weight(float *wptr, w_t *packed_weight,int num_chann
 kutacc_export void transitionblock_out(bfloat16_t* act, bfloat16_t* weights, bfloat16_t* out, int batch, int seq_len, int nchannels, int nheads);
 
 /**
- * @brief Triangle multiplication input kernel packing eq1 layout
+ * @brief Triangle multiplication input kernel packing einsum(...cik,...cjk->...cij) layout
  *
  * @param [in] a         Raw input matrix
  * @param [out] packed_a Packed tile buffer
@@ -1964,7 +1964,7 @@ kutacc_export void transitionblock_out(bfloat16_t* act, bfloat16_t* weights, bfl
 kutacc_export void pack_kernel_eq1(bfloat16_t* a, bfloat16_t* packed_a, int B, int N);
 
 /**
- * @brief Einsum eq1 compute kernel for triangle multiplication
+ * @brief Einsum(...cik,...cjk->...cij) compute kernel for triangle multiplication
  *
  * @param [in] aptr Packed input A matrix
  * @param [in] bptr Packed input B matrix
@@ -1976,7 +1976,7 @@ kutacc_export void pack_kernel_eq1(bfloat16_t* a, bfloat16_t* packed_a, int B, i
 kutacc_export void einsum_eq1(bfloat16_t* aptr, bfloat16_t* bptr, bfloat16_t* o, int C, int B, int N);
 
 /**
- * @brief Triangle multiplication input kernel packing eq2 layout
+ * @brief Triangle multiplication input kernel packing einsum(...ckj,...cki->...cij) layout
  *
  * @param [in] a         Raw input matrix
  * @param [out] packed_a Packed tile buffer eq2 layout
@@ -1986,7 +1986,7 @@ kutacc_export void einsum_eq1(bfloat16_t* aptr, bfloat16_t* bptr, bfloat16_t* o,
 kutacc_export void pack_kernel_eq2(bfloat16_t* a, bfloat16_t* packed_a, int N, int B);
 
 /**
- * @brief Einsum eq2 compute kernel for triangle multiplication
+ * @brief Einsum(...ckj,...cki->...cij) compute kernel for triangle multiplication
  *
  * @param [in] aptr Packed input A matrix
  * @param [in] bptr Packed input B matrix
@@ -1998,14 +1998,14 @@ kutacc_export void pack_kernel_eq2(bfloat16_t* a, bfloat16_t* packed_a, int N, i
 kutacc_export void einsum_eq2(bfloat16_t* aptr, bfloat16_t* bptr, bfloat16_t* o, int C, int B, int N);
 
 /**
- * @brief Triangle multiplication fused einsum + linear gate kernel
+ * @brief Triangle multiplication fused linear + sigmoid kernel
  *
  * @param [in] input      Raw input feature
  * @param [in] input_act  Preprocessed activation input
  * @param [in] output_w   Output projection weight
- * @param [in] gating_w   Gating projection weight
+ * @param [in] gating_w   Gate projection weight
  * @param [out] output    Triangle multiplication main output
- * @param [out] gate      Gating activation output
+ * @param [in] gate       Gate temp buffer
  * @param [in] c_0        First channel partition size
  * @param [in] c_1        Second channel partition size
  * @param [in] c_2        Third channel partition size
@@ -2014,11 +2014,11 @@ kutacc_export void trianglemultiplication(bfloat16_t* input, bfloat16_t* input_a
     int64_t c_0, int64_t c_1, int64_t c_2);
 
 /**
- * @brief Shared memory all2all distributed data exchange template
+ * @brief Shared memory all2all distributed data exchange , only support 8 processes
  *
  * @tparam data_t Element data type of buffer
  * @param [in] src             Source local data buffer
- * @param [out] out_ptr        Destination global gather buffer
+ * @param [out] out_ptr        Destination out buffer
  * @param [in] m_full          Full outer dimension size
  * @param [in] n_full          Full inner dimension size
  * @param [in] inner_size      Single slice inner element count
@@ -2039,7 +2039,7 @@ kutacc_export void shm_all2all(const data_t* src, data_t* out_ptr, int64_t m_ful
     int64_t m_rank, int64_t m_buffer_size, void * m_kupl_recvbuf, kupl_shm_win_h m_recvbuf_win);
 
 /**
- * @brief Shared memory allgather along dim1 template
+ * @brief Shared memory allgather along dim1, only support 8 processes
  *
  * @tparam data_t Input buffer element type
  * @param [in] src         Local rank input data
@@ -2056,7 +2056,7 @@ kutacc_export uint8_t* shm_all_gather_dim1(const data_t* src, int64_t B, int64_t
     int64_t m_rank, void * m_kupl_recvbuf, kupl_shm_win_h m_recvbuf_win);
 
 /**
- * @brief Generic shared memory allgather full dimension template
+ * @brief Shared memory allgather along dim0, only support 8 processes
  *
  * @tparam data_t Input element type
  * @param [in] src           Local rank input buffer
@@ -2066,7 +2066,7 @@ kutacc_export uint8_t* shm_all_gather_dim1(const data_t* src, int64_t B, int64_t
  * @param [in] m_world_size  Total world process count
  * @param [in] m_kupl_recvbuf Shm receive buffer raw pointer
  * @param [in] m_recvbuf_win Kupl shared memory window handle
- * @return uint8_t* Pointer to concatenated full gathered buffer
+ * @return uint8_t* Pointer to concatenated gathered buffer
  */
 template <typename data_t>
 kutacc_export uint8_t* shm_all_gather(const data_t* src, int64_t local_elements, size_t elem_size, 

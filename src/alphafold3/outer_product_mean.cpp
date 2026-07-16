@@ -104,8 +104,6 @@ void outer_product_mean(bfloat16_t* input_act, bfloat16_t* left_proj_w, bfloat16
     {
         int64_t left_nblocks = (n_res + left_block_size - 1) / left_block_size;
         int64_t right_nblocks = (n_res_gather + right_block_size - 1) / right_block_size;
-        // for (int64_t left_block_i = 0; left_block_i < left_nblocks; ++left_block_i) {
-        //     for (int64_t right_block_i = 0; right_block_i < right_nblocks; ++right_block_i) {
         kutacc::parallel_for(0, left_nblocks * right_nblocks, 1, [&](int64_t start, int64_t end) {
             int64_t left_block_i, right_block_i;
             kutacc::data_index_init(start, left_block_i, left_nblocks, right_block_i, right_nblocks);
@@ -122,7 +120,6 @@ void outer_product_mean(bfloat16_t* input_act, bfloat16_t* left_proj_w, bfloat16
                 int64_t n = (right_end - right_start) * c_i;
                 auto [tm, tn] = kutacc::compute_tm_tn(m, n);
                 kutacc::MatrixTilingBlock tiling(m, n, n_seq);
-                kutacc::MatrixTilingBlock tiling_shard(ROW_BLOCK_SIZE, COL_BLOCK_SIZE, n_seq);
                 std::unique_ptr<bfloat16_t[]> pack_a(new bfloat16_t[m * n_seq]);
                 std::unique_ptr<bfloat16_t[]> pack_b(new bfloat16_t[n_seq * n]);
                 std::unique_ptr<__bf16[]> tmpc(new __bf16[m * n]);
@@ -131,7 +128,7 @@ void outer_product_mean(bfloat16_t* input_act, bfloat16_t* left_proj_w, bfloat16
                 kutacc::bf16_gemm_pack_singlethread(n, n_seq, std::get<1>(tiling), std::get<2>(tiling),
                                     (__bf16 *)(right_proj_ + right_start * c_i * n_seq), pack_b.get());
                 auto chunk_buf = std::unique_ptr<bfloat16_t[]>(new bfloat16_t[m * n]);
-                kutacc::bf16_packed_gemm_singlethread(m, n, n_seq, tiling_shard,
+                kutacc::bf16_packed_gemm_singlethread(m, n, n_seq, tiling,
                                         pack_a.get(), pack_b.get(),
                                         (__bf16 *)chunk_buf.get(), tmpc.get(), nullptr, false);
 

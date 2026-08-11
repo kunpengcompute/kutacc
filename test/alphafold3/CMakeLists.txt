@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 
 #
-# Copyright (c) 2025 Huawei Technologies Co., Ltd. All Rights Reserved.
+# Copyright (c) 2026 Huawei Technologies Co., Ltd. All Rights Reserved.
 #
 # Licensed under a modified version of the MIT license. See LICENSE in the project root for license information.
 #

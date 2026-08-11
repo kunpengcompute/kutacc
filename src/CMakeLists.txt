@@ -78,7 +78,7 @@ target_link_libraries(${LIBKUTACC_NAME} numa)
 target_link_libraries(${LIBKUTACC_NAME} mpi)
 target_link_libraries(${LIBKUTACC_NAME} kupl)
 
-set_target_properties(${LIBKUTACC_NAME} PROPERTIES VERSION 1.26.1.RC1 SOVERSION 1)
+set_target_properties(${LIBKUTACC_NAME} PROPERTIES VERSION 1.26.2.0 SOVERSION 1)
 
 #Install
 libkutacc_header_install()

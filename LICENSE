@@ -1,127 +1,34 @@
-                     Ä¾À¼¿íËÉĞí¿ÉÖ¤, µÚ2°æ
+Open Software License
 
-   Ä¾À¼¿íËÉĞí¿ÉÖ¤£¬ µÚ2°æ
-   2020Äê1ÔÂ http://license.coscl.org.cn/MulanPSL2
+Important Notice
+======================================================================
 
+This Open Software License 1.0 (hereinafter referred to as this "License") is a modified version of the the MIT License, includes all of the terms and conditions of the MIT License, and additional conditions as below.
 
-   Äú¶Ô¡°Èí¼ş¡±µÄ¸´ÖÆ¡¢Ê¹ÓÃ¡¢ĞŞ¸Ä¼°·Ö·¢ÊÜÄ¾À¼¿íËÉĞí¿ÉÖ¤£¬µÚ2°æ£¨¡°±¾Ğí¿ÉÖ¤¡±£©µÄÈçÏÂÌõ¿îµÄÔ¼Êø£º
+BY DOWNLOADING, INSTALLING, OR USING THE SOFTWARE, YOU AGREE YOU HAVE FULLY UNDERSTOOD AND ACCEPTED THE TERMS CONTAINED HEREIN. IF YOU DO NOT AGREE TO ANY OF THE TERMS OF THIS LICENSE, OR IF YOU DO NOT QUALIFY FOR AGREEING TO THIS LICENSE, YOU ARE NOT AUTHORIZED TO AND SHALL NOT DOWNLOAD, INSTALL, OR MAKE ANY USE OF THE SOFTWARE.
 
-   0. ¶¨Òå
+======================================================================
 
-      ¡°Èí¼ş¡±ÊÇÖ¸ÓÉ¡°¹±Ï×¡±¹¹³ÉµÄĞí¿ÉÔÚ¡°±¾Ğí¿ÉÖ¤¡±ÏÂµÄ³ÌĞòºÍÏà¹ØÎÄµµµÄ¼¯ºÏ¡£
+The MIT License
 
-      ¡°¹±Ï×¡±ÊÇÖ¸ÓÉÈÎÒ»¡°¹±Ï×Õß¡±Ğí¿ÉÔÚ¡°±¾Ğí¿ÉÖ¤¡±ÏÂµÄÊÜ°æÈ¨·¨±£»¤µÄ×÷Æ·¡£
+Copyright (c) 2026 Huawei Technologies Co., Ltd. All rights reserved.
 
-      ¡°¹±Ï×Õß¡±ÊÇÖ¸½«ÊÜ°æÈ¨·¨±£»¤µÄ×÷Æ·Ğí¿ÉÔÚ¡°±¾Ğí¿ÉÖ¤¡±ÏÂµÄ×ÔÈ»ÈË»ò¡°·¨ÈËÊµÌå¡±¡£
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the â€œSoftwareâ€), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+LICENSE
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-      ¡°·¨ÈËÊµÌå¡±ÊÇÖ¸Ìá½»¹±Ï×µÄ»ú¹¹¼°Æä¡°¹ØÁªÊµÌå¡±¡£
+THE SOFTWARE IS PROVIDED â€œAS ISâ€, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-      ¡°¹ØÁªÊµÌå¡±ÊÇÖ¸£¬¶Ô¡°±¾Ğí¿ÉÖ¤¡±ÏÂµÄĞĞÎª·½¶øÑÔ£¬¿ØÖÆ¡¢ÊÜ¿ØÖÆ»òÓëÆä¹²Í¬ÊÜ¿ØÖÆµÄ»ú¹¹£¬´Ë´¦µÄ¿ØÖÆÊÇÖ¸ÓĞÊÜ¿Ø·½»ò¹²Í¬ÊÜ¿Ø·½ÖÁÉÙ50%Ö±½Ó»ò¼ä½ÓµÄÍ¶Æ±È¨¡¢×Ê½ğ»òÆäËûÓĞ¼ÛÖ¤È¯¡£
+======================================================================
+                                                                 Additional Conditions
+======================================================================
+The Software may be utilized commercially, whether in source or executable forms, provided that you also meet all of the following conditions:
 
-   1. ÊÚÓè°æÈ¨Ğí¿É
+a. You shall not use the Software or its derivative works in systems with processors other than Kunpeng processors.
+b. You shall not make any use of the Software or its derivative works to develop or distribute any software for use in systems with processors other than Kunpeng processors.
+c. You must  include the same restrictions in Section a and b as an enforceable provision in any agreement (e.g., license agreement, terms of use, etc.) governing the use and/or distribution of the Software or Derivative Works.
 
-      Ã¿¸ö¡°¹±Ï×Õß¡±¸ù¾İ¡°±¾Ğí¿ÉÖ¤¡±ÊÚÓèÄúÓÀ¾ÃĞÔµÄ¡¢È«ÇòĞÔµÄ¡¢Ãâ·ÑµÄ¡¢·Ç¶ÀÕ¼µÄ¡¢²»¿É³·ÏúµÄ°æÈ¨Ğí¿É£¬Äú¿ÉÒÔ¸´ÖÆ¡¢Ê¹ÓÃ¡¢ĞŞ¸Ä¡¢·Ö·¢Æä¡°¹±Ï×¡±£¬²»ÂÛĞŞ¸ÄÓë·ñ¡£
-
-   2. ÊÚÓè×¨ÀûĞí¿É
-
-      Ã¿¸ö¡°¹±Ï×Õß¡±¸ù¾İ¡°±¾Ğí¿ÉÖ¤¡±ÊÚÓèÄúÓÀ¾ÃĞÔµÄ¡¢È«ÇòĞÔµÄ¡¢Ãâ·ÑµÄ¡¢·Ç¶ÀÕ¼µÄ¡¢²»¿É³·ÏúµÄ£¨¸ù¾İ±¾Ìõ¹æ¶¨³·Ïú³ıÍâ£©×¨ÀûĞí¿É£¬¹©ÄúÖÆÔì¡¢Î¯ÍĞÖÆÔì¡¢Ê¹ÓÃ¡¢ĞíÅµÏúÊÛ¡¢ÏúÊÛ¡¢½ø¿ÚÆä¡°¹±Ï×¡±»òÒÔÆäËû·½Ê½×ªÒÆÆä¡°¹±Ï×¡±¡£Ç°Êö×¨ÀûĞí¿É½öÏŞÓÚ¡°¹±Ï×Õß¡±ÏÖÔÚ»ò½«À´ÓµÓĞ»ò¿ØÖÆµÄÆä¡°¹±Ï×¡±±¾Éí»òÆä¡°¹±Ï×¡±ÓëĞí¿É¡°¹±Ï×¡±Ê±µÄ¡°Èí¼ş¡±½áºÏ¶ø½«±ØÈ»»áÇÖ·¸µÄ×¨ÀûÈ¨ÀûÒªÇó£¬²»°üÀ¨¶Ô¡°¹±Ï×¡±µÄĞŞ¸Ä»ò°üº¬¡°¹±Ï×¡±µÄÆäËû½áºÏ¡£Èç¹ûÄú»òÄúµÄ¡°¹ØÁªÊµÌå¡±Ö±½Ó»ò¼ä½ÓµØ£¬¾Í¡°Èí¼ş¡±»òÆäÖĞµÄ¡°¹±Ï×¡±¶ÔÈÎºÎÈË·¢Æğ×¨ÀûÇÖÈ¨ËßËÏ£¨°üÀ¨·´Ëß»ò½»²æËßËÏ£©»òÆäËû×¨ÀûÎ¬È¨ĞĞ¶¯£¬Ö¸¿ØÆäÇÖ·¸×¨ÀûÈ¨£¬Ôò¡°±¾Ğí¿ÉÖ¤¡±ÊÚÓèÄú¶Ô¡°Èí¼ş¡±µÄ×¨ÀûĞí¿É×ÔÄúÌáÆğËßËÏ»ò·¢ÆğÎ¬È¨ĞĞ¶¯Ö®ÈÕÖÕÖ¹¡£
-
-   3. ÎŞÉÌ±êĞí¿É
-
-      ¡°±¾Ğí¿ÉÖ¤¡±²»Ìá¹©¶Ô¡°¹±Ï×Õß¡±µÄÉÌÆ·Ãû³Æ¡¢ÉÌ±ê¡¢·şÎñ±êÖ¾»ò²úÆ·Ãû³ÆµÄÉÌ±êĞí¿É£¬µ«ÄúÎªÂú×ãµÚ4Ìõ¹æ¶¨µÄÉùÃ÷ÒåÎñ¶ø±ØĞëÊ¹ÓÃ³ıÍâ¡£
-
-   4. ·Ö·¢ÏŞÖÆ
-
-      Äú¿ÉÒÔÔÚÈÎºÎÃ½½éÖĞ½«¡°Èí¼ş¡±ÒÔÔ´³ÌĞòĞÎÊ½»ò¿ÉÖ´ĞĞĞÎÊ½ÖØĞÂ·Ö·¢£¬²»ÂÛĞŞ¸ÄÓë·ñ£¬µ«Äú±ØĞëÏò½ÓÊÕÕßÌá¹©¡°±¾Ğí¿ÉÖ¤¡±µÄ¸±±¾£¬²¢±£Áô¡°Èí¼ş¡±ÖĞµÄ°æÈ¨¡¢ÉÌ±ê¡¢×¨Àû¼°ÃâÔğÉùÃ÷¡£
-
-   5. ÃâÔğÉùÃ÷ÓëÔğÈÎÏŞÖÆ
-
-      ¡°Èí¼ş¡±¼°ÆäÖĞµÄ¡°¹±Ï×¡±ÔÚÌá¹©Ê±²»´øÈÎºÎÃ÷Ê¾»òÄ¬Ê¾µÄµ£±£¡£ÔÚÈÎºÎÇé¿öÏÂ£¬¡°¹±Ï×Õß¡±»ò°æÈ¨ËùÓĞÕß²»¶ÔÈÎºÎÈËÒòÊ¹ÓÃ¡°Èí¼ş¡±»òÆäÖĞµÄ¡°¹±Ï×¡±¶øÒı·¢µÄÈÎºÎÖ±½Ó»ò¼ä½ÓËğÊ§³Ğµ£ÔğÈÎ£¬²»ÂÛÒòºÎÖÖÔ­Òòµ¼ÖÂ»òÕß»ùÓÚºÎÖÖ·¨ÂÉÀíÂÛ£¬¼´Ê¹ÆäÔø±»½¨ÒéÓĞ´ËÖÖËğÊ§µÄ¿ÉÄÜĞÔ¡£
-
-   6. ÓïÑÔ
-      ¡°±¾Ğí¿ÉÖ¤¡±ÒÔÖĞÓ¢ÎÄË«Óï±íÊö£¬ÖĞÓ¢ÎÄ°æ±¾¾ßÓĞÍ¬µÈ·¨ÂÉĞ§Á¦¡£Èç¹ûÖĞÓ¢ÎÄ°æ±¾´æÔÚÈÎºÎ³åÍ»²»Ò»ÖÂ£¬ÒÔÖĞÎÄ°æÎª×¼¡£
-
-   Ìõ¿î½áÊø
-
-   ÈçºÎ½«Ä¾À¼¿íËÉĞí¿ÉÖ¤£¬µÚ2°æ£¬Ó¦ÓÃµ½ÄúµÄÈí¼ş
-
-   Èç¹ûÄúÏ£Íû½«Ä¾À¼¿íËÉĞí¿ÉÖ¤£¬µÚ2°æ£¬Ó¦ÓÃµ½ÄúµÄĞÂÈí¼ş£¬ÎªÁË·½±ã½ÓÊÕÕß²éÔÄ£¬½¨ÒéÄúÍê³ÉÈçÏÂÈı²½£º
-
-      1£¬ ÇëÄú²¹³äÈçÏÂÉùÃ÷ÖĞµÄ¿Õ°×£¬°üÀ¨Èí¼şÃû¡¢Èí¼şµÄÊ×´Î·¢±íÄê·İÒÔ¼°Äú×÷Îª°æÈ¨ÈËµÄÃû×Ö£»
-
-      2£¬ ÇëÄúÔÚÈí¼ş°üµÄÒ»¼¶Ä¿Â¼ÏÂ´´½¨ÒÔ¡°LICENSE¡±ÎªÃûµÄÎÄ¼ş£¬½«Õû¸öĞí¿ÉÖ¤ÎÄ±¾·ÅÈë¸ÃÎÄ¼şÖĞ£»
-
-      3£¬ Çë½«ÈçÏÂÉùÃ÷ÎÄ±¾·ÅÈëÃ¿¸öÔ´ÎÄ¼şµÄÍ·²¿×¢ÊÍÖĞ¡£
-
-   Copyright (c) [Year] [name of copyright holder]
-   [Software Name] is licensed under Mulan PSL v2.
-   You can use this software according to the terms and conditions of the Mulan PSL v2.
-   You may obtain a copy of Mulan PSL v2 at:
-          http://license.coscl.org.cn/MulanPSL2
-   THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-   See the Mulan PSL v2 for more details.
+Kunpeng processors Definition:  For the purposes of this license, "Kunpeng processors" mean the computing processor chipsets branded with "Kunpeng", "é²²é¹" or other brands owned or controlled by Huawei.
 
 
-                     Mulan Permissive Software License£¬Version 2
-
-   Mulan Permissive Software License£¬Version 2 (Mulan PSL v2)
-   January 2020 http://license.coscl.org.cn/MulanPSL2
-
-   Your reproduction, use, modification and distribution of the Software shall be subject to Mulan PSL v2 (this License) with the following terms and conditions:
-
-   0. Definition
-
-      Software means the program and related documents which are licensed under this License and comprise all Contribution(s).
-
-      Contribution means the copyrightable work licensed by a particular Contributor under this License.
-
-      Contributor means the Individual or Legal Entity who licenses its copyrightable work under this License.
-
-      Legal Entity means the entity making a Contribution and all its Affiliates.
-
-      Affiliates means entities that control, are controlled by, or are under common control with the acting entity under this License, ¡®control¡¯ means direct or indirect ownership of at least fifty percent (50%) of the voting power, capital or other securities of controlled or commonly controlled entity.
-
-   1. Grant of Copyright License
-
-      Subject to the terms and conditions of this License, each Contributor hereby grants to you a perpetual, worldwide, royalty-free, non-exclusive, irrevocable copyright license to reproduce, use, modify, or distribute its Contribution, with modification or not.
-
-   2. Grant of Patent License
-
-      Subject to the terms and conditions of this License, each Contributor hereby grants to you a perpetual, worldwide, royalty-free, non-exclusive, irrevocable (except for revocation under this Section) patent license to make, have made, use, offer for sale, sell, import or otherwise transfer its Contribution, where such patent license is only limited to the patent claims owned or controlled by such Contributor now or in future which will be necessarily infringed by its Contribution alone, or by combination of the Contribution with the Software to which the Contribution was contributed. The patent license shall not apply to any modification of the Contribution, and any other combination which includes the Contribution. If you or your Affiliates directly or indirectly institute patent litigation (including a cross claim or counterclaim in a litigation) or other patent enforcement activities against any individual or entity by alleging that the Software or any Contribution in it infringes patents, then any patent license granted to you under this License for the Software shall terminate as of the date such litigation or activity is filed or taken.
-
-   3. No Trademark License
-
-      No trademark license is granted to use the trade names, trademarks, service marks, or product names of Contributor, except as required to fulfill notice requirements in Section 4.
-
-   4. Distribution Restriction
-
-      You may distribute the Software in any medium with or without modification, whether in source or executable forms, provided that you provide recipients with a copy of this License and retain copyright, patent, trademark and disclaimer statements in the Software.
-
-   5. Disclaimer of Warranty and Limitation of Liability
-
-      THE SOFTWARE AND CONTRIBUTION IN IT ARE PROVIDED WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED. IN NO EVENT SHALL ANY CONTRIBUTOR OR COPYRIGHT HOLDER BE LIABLE TO YOU FOR ANY DAMAGES, INCLUDING, BUT NOT LIMITED TO ANY DIRECT, OR INDIRECT, SPECIAL OR CONSEQUENTIAL DAMAGES ARISING FROM YOUR USE OR INABILITY TO USE THE SOFTWARE OR THE CONTRIBUTION IN IT, NO MATTER HOW IT¡¯S CAUSED OR BASED ON WHICH LEGAL THEORY, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
-
-   6. Language
-
-      THIS LICENSE IS WRITTEN IN BOTH CHINESE AND ENGLISH, AND THE CHINESE VERSION AND ENGLISH VERSION SHALL HAVE THE SAME LEGAL EFFECT. IN THE CASE OF DIVERGENCE BETWEEN THE CHINESE AND ENGLISH VERSIONS, THE CHINESE VERSION SHALL PREVAIL.
-
-   END OF THE TERMS AND CONDITIONS
-
-   How to Apply the Mulan Permissive Software License£¬Version 2 (Mulan PSL v2) to Your Software
-
-      To apply the Mulan PSL v2 to your work, for easy identification by recipients, you are suggested to complete following three steps:
-
-      i Fill in the blanks in following statement, including insert your software name, the year of the first publication of your software, and your name identified as the copyright owner;
-
-      ii Create a file named ¡°LICENSE¡± which contains the whole context of this License in the first directory of your software package;
-
-      iii Attach the statement to the appropriate annotated syntax at the beginning of each source file.
-
-
-   Copyright (c) [Year] [name of copyright holder]
-   [Software Name] is licensed under Mulan PSL v2.
-   You can use this software according to the terms and conditions of the Mulan PSL v2.
-   You may obtain a copy of Mulan PSL v2 at:
-          http://license.coscl.org.cn/MulanPSL2
-   THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-   See the Mulan PSL v2 for more details.
+END OF THE TERMS AND CONDITIONS

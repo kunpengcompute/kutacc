@@ -1,159 +1,124 @@
-# KuTACC
+# Kunpeng Unified Transformer Accelerated Library
 
-## 🔥Release Notes
+## 1.简介
+鲲鹏芯片支持向量、矩阵计算，带来算力提升的同时，辅以高速RDMA网络，带来超大带宽、微秒级延迟的极致性能。该芯片强浮点算力和高速带宽天然亲和AI推理计算。基于此，我们提出一种鲲鹏平台上Transformer模型融合算子库（简称“KuTACC”），高效实现Transformer模型推理在鲲鹏处理器的执行。
 
-- [2026/03] KuTACC项目首次上线，支持AlphaFold2应用底层计算融合算子、通信融合算子。
+## 2.本地部署运行
 
-## 🚀概述
+### 2.1 环境依赖搭建
 
-鲲鹏芯片支持向量、矩阵计算，带来算力提升的同时，辅以高速RDMA网络，带来超大带宽、微秒级延迟的极致性能。该芯片强浮点算力和高速带宽天然亲和AI推理计算。基于此，我们提出鲲鹏Transformer模型融合算子库（Kunpeng Unifined Transformer Accelerated Library，以下简称KuTACC），高效实现Transformer模型推理在鲲鹏处理器的执行。
+#### 2.1.1 安装 HPCKit 编译套件
+该方案是用HPCKit组件中的毕昇编译器进行编译，HPCKit安装流程参考[官方指导文档](https://www.hikunpeng.com/developer/hpc/hpckit-download)。
 
-## 📝版本配套
+KuTACC的安装需要使用HPCKit环境中的毕昇编译器、KUPL，配置流程参考[HPCKit介绍](https://www.hikunpeng.com/document/detail/zh/kunpenghpcs/hpckit/devg/KunpengHPCKit_developer_002.html)。
 
-- 运行平台
-    - 鲲鹏 920 专业版
-- 系统规格
-    - openEuler 22.03（LTS-SP4）AArch64
-
-## ⚡️编译安装
-
-若您希望**从零到一快速体验**项目能力，请参照下述编译安装教程。
-
-#### 1. [获取 HPCKit 软件包](https://www.hikunpeng.com/document/detail/zh/kunpenghpcs/hpckit/instg/KunpengHPCKit_install_007.html)
-
-##### 下载 HPCKit 软件包（HPCKit 版本号根据实际情况调整）
-```
-wget https://mirrors.huaweicloud.com/kunpeng/archive/HPC/HPCKit/HPCKit_26.0.RC1_Linux-aarch64.tar.gz
+#### 2.1.2 加载毕昇编译器
+指定HPCKit安装路径`HPCKIT_PATH`，执行下述命令导入编译器环境变量：
+```shell
+HPCKIT_PATH=/path-to-HPCKit
+source ${HPCKIT_PATH}/latest/compiler/bisheng/env/setvars.sh
+export CC=$(which clang)
+export CXX=$(which clang++)
+export FC=$(which flang)
 ```
 
-#### 2. [安装 HPCKit](https://www.hikunpeng.com/document/detail/zh/kunpenghpcs/hpckit/instg/KunpengHPCKit_install_012.html)
-
-##### 解压 HPCKit 软件包（HPCKit 版本号根据实际情况调整）
-```
-tar xvf HPCKit_26.0.RC1_Linux-aarch64.tar.gz
-```
-
-##### 安装 HPCKit
-```
-sh HPCKit_26.0.RC1_Linux-aarch64/install.sh -y --prefix=[HPCKit安装目录]
+#### 2.1.3 加载KUPL环境变量
+指定HPCKit安装路径`HPCKIT_PATH`，执行下述命令导入KUPL环境变量：
+```shell
+KUPL_PATH=${HPCKIT_PATH}/latest/kupl/bisheng/release
+export CPATH=${KUPL_PATH}/include:$CPATH
+export LIBRARY_PATH=${KUPL_PATH}/lib:$LIBRARY_PATH
+export LD_LIBRARY_PATH=${KUPL_PATH}/lib:$LD_LIBRARY_PATH
 ```
 
-#### 3. [设置环境变量](https://www.hikunpeng.com/document/detail/zh/kunpenghpcs/hpckit/instg/KunpengHPCKit_install_014.html)
-
-##### 安装 Module 环境变量管理工具（需要已配置 yum 源）
-```
-yum install environment-modules
-```
-
-##### 加载 module
-```
-module use [HPCKit安装目录]/HPCKit/latest/modulefiles
+#### 2.1.4 加载ibverbs依赖库变量
+通信接口使用了基于verbs接口的RDMA通信功能，执行下述命令配置`libibverbs`库环境变量：
+```shell
+export LD_LIBRARY_PATH=/usr/lib64/libibverbs:$LD_LIBRARY_PATH
 ```
 
-##### 加载编译器环境变量（编译器版本号根据实际情况调整）
-```
-module load bisheng/compiler5.1.0.2/bishengmodule
+#### 2.1.5 加载内核驱动模块文件（可选）
+为了进一步释放硬件算力，从底层提升算子推理整体运行效率，可按需加载对应内核模块。
+
+##### 2.1.5.1 zcopy内核驱动模块
+zcopy（zero copy）内核驱动依托零拷贝原理，可将不同进程的内存地址相互映射共享，减少传输开销，有效提升数据交互与运算效率。
+
+###### 2.1.5.1.1 内核驱动模块获取
+获取zcopy内核驱动模块方式有以下2种：  
+（1）openEuler系统获取
+若系统内核版本在`5.10.0-294`版本及以上，可直接进入系统默认驱动目录解压使用，下述以`5.10.0-294`版本为例，最终内核驱动为`zcopy.ko`：
+```shell
+cd /usr/lib/modules/5.10.0-294.0.0.197.oe2203sp4.aarch64/kernel/drivers/misc/zcopy
+xz -d zcopy.ko.xz
+ll /usr/lib/modules/5.10.0-294.0.0.197.oe2203sp4.aarch64/kernel/drivers/misc/zcopy.ko
 ```
 
-##### 加载依赖库环境变量
-```
-module load bisheng/kutacc26.0.RC1/kutacc
-module load bisheng/kupl26.0.RC1/release
-module load bisheng/hmpi26.0.RC1/release
-export CPLUS_INCLUDE_PATH=[HPCKit安装目录]/HPCKit/latest/hmpi/bisheng/release/hmpi/include:${CPLUS_INCLUDE_PATH}
-```
-
-#### 4. 安装编译所需依赖（需要已配置 yum 源）
-
-安装 cmake
-```
-yum install cmake
+或者，可在[镜像源下载地址](https://dl-cdn.openeuler.openatom.cn/openEuler-22.03-LTS-SP4/update/aarch64/Packages/)下载，并进行解压提取`zcopy.ko`，下述以`5.10.0-294`版本为例：
+```shell
+wget https://dl-cdn.openeuler.openatom.cn/openEuler-22.03-LTS-SP4/update/aarch64/Packages/kernel-5.10.0-294.0.0.197.oe2203sp4.aarch64.rpm
+rpm2cpio kernel-5.10.0-294.0.0.197.oe2203sp4.aarch64.rpm | cpio -div
+cd usr/lib/modules/5.10.0-294.0.0.197.oe2203sp4.aarch64/kernel/drivers/misc/zcopy
+xz -d zcopy.ko.xz
+ll /usr/lib/modules/5.10.0-294.0.0.197.oe2203sp4.aarch64/kernel/drivers/misc/zcopy.ko
 ```
 
-#### 5. 源码编译安装
+（2）其他操作系统  
+对于其他操作系统，可以在`/path_to_kutacc/thirdparty/zcopy`下获取zcopy驱动模块源码，进行对应操作系统适配后，按照`README.md`进行编译生成`zcopy.ko`。
 
-- 如果使用源码压缩包的代码下载方式
-##### 上传并解压 KuTACC 项目源码包（分支名根据实际情况调整）
-```
-unzip kutacc-main.zip
-```
-
-##### 进入KuTACC项目源码根目录（分支名根据实际情况调整）
-```
-cd kutacc-main
+###### 2.1.5.1.2 执行命令
+获取`zcopy.ko`文件后，执行以下命令完成加载、查看以及卸载:
+```shell
+insmod zcopy.ko      # 加载内核驱动模块
+lsmod | grep zcopy   # 查看内核驱动模块加载状态
+rmmod zcopy          # 卸载内核驱动模块
 ```
 
-##### 编译安装
-可以使用build.sh将KuTACC安装在任意指定的路径下，支持Release或Debug模式的库安装。
-- Release模式：
-```
-sh build.sh --install_path=/path/to/your/kutacc-path --build_type=Release
-```
-- Debug模式：
-```
-sh build.sh --install_path=/path/to/your/kutacc-path --build_type=Debug
+##### 2.1.5.2 硬件预取优化内核驱动模块
+硬件预取优化驱动模块用于配置硬件预取模式，配合代码中的手动数据预取操作，优化缓存命中率，从而提升计算性能。
+若有需要可以联系华为人员。
+
+### 2.2 源码编译与安装
+执行下述命令进行源码编译与安装，默认安装路径为`/path_to_kutacc/install`：
+```shell
+sh build.sh
 ```
 
-#### 6. 编译运行测试程序
-
-需要编译并加载 Bisheng 版本的 googletest。
-
-指定编译 googletest 的编译器为 Bisheng
-```
-export CC=clang
-export CXX=clang++
-```
-参考 https://github.com/google/googletest/tree/main/googletest 编译 googletest
-
-将 googletest 加入到环境变量中
-```
-export INCLUDE=[googletest安装目录]/include:$INCLUDE
-export LIBRARY_PATH=[googletest安装目录]/lib:$LIBRARY_PATH
-export LD_LIBRARY_PATH=[googletest安装目录]/lib:$LD_LIBRARY_PATH
+### 2.3 环境变量配置
+执行下述命令设置KuTACC的环境变量，而后在目标应用中编译使用即可：
+```shell
+export KUTACC_PATH=/path_to_kutacc
+export KUTACC_LIB=/path_to_kutacc/install/lib
+export KUTACC_INCLUDE=/path_to_kutacc/install/include
 ```
 
-编译运行测试程序
+### 2.4 运行测试用例（可选）
+测试代码运行依赖于`MVAPICH`，源码获取参考[MVAPICH官网](https://mvapich.cse.ohio-state.edu)，安装流程如下：
+```shell
+bash script/mvapich_install.sh --prefix=/path/to/install
 ```
-sh build.sh --build_kind=test
+
+安装完成`MVAPICH`后，执行下述命令加载环境变量：
+```shell
+export MPI_PATH=/path-to-MVAPICH
+export PATH=${MPI_PATH}/bin:$PATH
+```
+
+执行下述命令运行测试用例：
+```shell
 cd test
-sh test_all.sh
+bash build.sh
+bash run_test.sh
 ```
 
-## 📖学习教程
+## 3. 支持的应用
 
-若您已学习**编译安装**，对本项目有一定认知，并希望**深入了解和体验项目**，请访问下述详细教程。
+| 支持的应用    |  应用版本 |
+|:---------|------:|
+| DeepSeek | V3/R1 |
+| AlphaFold3 | 鲲鹏社区开源版本 |
 
-1. [开发指南](https://www.hikunpeng.com/document/detail/zh/kunpenghpcs/hpckit/devg/KunpengHPCKit_developer_123.html)：提供详细接口开发指南，从零学习接口功能与开发。
+## License
+此代码遵循[OpenSoftware License 1.0](LICENSE)，继承自MIT。
 
-## 🔍目录结构
-项目详细目录介绍如下。
-```
-├── cmake                          # 项目工程编译脚本目录
-├── include                        # 项目公共头文件
-├── src                            # 项目源码目录
-│   ├── activation                 # 激活函数
-│   ├── attention                  # 计算融合算子
-│   ├── comm                       # 通信融合算子
-│   ├── linear                     # 线性算子
-│   ├── math                       # 数学函数
-│   ├── normalization              # 归一化函数
-│   ├── softmax                    # softmax函数
-│   ├── tensor                     # 张量数据结构
-│   ├── utils                      # 通用功能工具
-│   ├── version                    # 版本信息函数
-│   ├── wrapper                    # 向量计算函数
-│   └── CMakeLists.txt             # 源码编译配置文件
-├── test                           # 测试工程目录
-├── CMakeLists.txt
-├── LICENSE
-├── README.md
-└── build.sh                       # 项目工程编译脚本
-```
-
-## 🤝联系我们
-
-本项目功能和文档正在持续更新和完善中，建议您关注最新版本。
-
-- **问题反馈**：通过 [【Issues】](https://atomgit.com/kunpengcompute/kutacc/issues)提交问题。
-- **社区互动**：通过 [【鲲鹏论坛（HPC专区）】](https://www.hikunpeng.com/forum/forum-0187135482144798003-1.html)参与交流。
-- **技术专栏**：通过 [【鲲鹏社区】](https://www.hikunpeng.com/developer/techArticles) 获取技术文章，如系列化教程、优秀实践等。
+## 联系方式
+如果您有任何疑问，请欢迎提issue共同讨论

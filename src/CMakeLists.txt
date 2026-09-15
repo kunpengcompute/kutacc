@@ -1,13 +1,15 @@
 #
 # Copyright (c) 2026 Huawei Technologies Co., Ltd. All Rights Reserved.
 #
-# KuTACC is licensed under Mulan PSL v2.
-# You can use this software according to the terms and conditions of the Mulan PSL v2.
-# You may obtain a copy of Mulan PSL v2 at:
-#        http://license.coscl.org.cn/MulanPSL2
-# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-# INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-# See the Mulan PSL v2 for more details.
+# Licensed under a modified version of the MIT license. See LICENSE in the project root for license information.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
 
 # Check debug mode
@@ -16,46 +18,63 @@ if (CMAKE_BUILD_TYPE MATCHES "Debug")
     set(ENABLE_KUTACC_ASSERT ON)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wfloat-equal -fno-common -march=armv8.2-a+bf16+sve -msve-vector-bits=512 -fPIC -fopenmp")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wfloat-equal -fno-common -march=armv8.2-a+bf16+sve -msve-vector-bits=512 -fPIC -fopenmp")
+    set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -Wall -Wextra -Wfloat-equal -fno-common -march=armv8.2-a+bf16+sve -msve-vector-bits=512 -fPIC -fopenmp")
     add_compile_options(-O0 -g -gdwarf-4)
     message("-- Caution : using debug mode, performance is bad, just for develop")
 elseif (CMAKE_BUILD_TYPE MATCHES "Release")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8.2-a+bf16+sve -msve-vector-bits=512 -fPIC -fopenmp")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=armv8.2-a+bf16+sve -msve-vector-bits=512 -fPIC -fopenmp")
+    set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -mcpu=native")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcpu=native -Wno-vla-cxx-extension -Wno-undefined-arm-za -Wno-undefined-arm-streaming -msve-vector-bits=512 -rtlib=compiler-rt")
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-field-initializers")
+        set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -Wno-missing-field-initializers")
     endif()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -Wfloat-equal -fno-common -Weffc++")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Woverloaded-virtual -Wnon-virtual-dtor -Wdelete-non-virtual-dtor")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wformat=2 -Wunused -Wswitch-default -Wundef -Wdate-time -Wshadow")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wcast-align -Wcast-qual -pipe -Wconversion")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wframe-larger-than=16384 -Wvla -fstack-protector-strong")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wstrict-prototypes")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-designated-field-initializers")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fstack-protector-strong")
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -s -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack -Wl,-Bsymbolic -rdynamic -Wl,--no-undefined")
     add_compile_options(-O3)
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -stdlib=libstdc++")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -stdlib=libc++")
+
+include(${KUTACC_CMAKE_INCLUDE_PATH}/libkutacc_source_files.cmake)
+libkutacc_source_files(KUTACC_SRCS)
+add_library(${LIBKUTACC_NAME} SHARED ${KUTACC_SRCS})
+
+if (KUTACC_ENABLE_EXTRA_PREFETCH STREQUAL "on")
+    message("-- kutacc enable extra prefetch instructions")
+    add_definitions(-DENABLE_EXTRA_PREFETCH)
+endif()
+
+if (KUTACC_PARALLEL_BACKEND STREQUAL "omp")
+    message("-- kutacc parallel backend is set to omp")
+    add_definitions(-DUSE_OMP_PARALLEL)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+elseif (KUTACC_PARALLEL_BACKEND STREQUAL "kupl")
+    message("-- kutacc parallel backend is set to kupl")
+    add_definitions(-DUSE_KUPL_PARALLEL)
+    target_link_libraries(${LIBKUTACC_NAME} kupl)
+elseif (KUTACC_PARALLEL_BACKEND STREQUAL "kupl_global")
+    message("-- kutacc parallel backend is set to kupl-global")
+    add_definitions(-DUSE_KUPL_GLOBAL_PARALLEL)
+    target_link_libraries(${LIBKUTACC_NAME} kupl)
+endif()
 
 if (KUTACC_BUILD_KIND MATCHES "src")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
+    set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -fvisibility=hidden")
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 19.0)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-designated-field-initializers")
-    endif()
     if (KUTACC_BUILD_KIND MATCHES "test")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-inline -fprofile-arcs -ftest-coverage")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-inline -fprofile-arcs -ftest-coverage")
+        set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -fno-inline -fprofile-arcs -ftest-coverage")
     elseif (KUTACC_BUILD_KIND MATCHES "fuzz")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
+        set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -fvisibility=hidden")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-inline -fprofile-arcs -ftest-coverage -fsanitize-coverage=trace-pc")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-inline -fprofile-arcs -ftest-coverage -fsanitize-coverage=trace-pc")
+        set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -fno-inline -fprofile-arcs -ftest-coverage -fsanitize-coverage=trace-pc")
     endif()
 endif()
 
@@ -64,22 +83,33 @@ if (CMAKE_BUILD_TYPE MATCHES "Release")
 endif()
 
 include_directories(${KUTACC_ROOT_DIR}/include)
+include_directories(${KUTACC_ROOT_DIR}/src)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-include_directories(${KUTACC_ROOT_DIR}/src)
+target_link_libraries(${LIBKUTACC_NAME} numa kupl)
 
-include(${KUTACC_CMAKE_INCLUDE_PATH}/libkutacc_source_files.cmake)
+target_link_libraries(${LIBKUTACC_NAME}
+    /usr/lib64/libibverbs.so
+    /usr/lib64/libibverbs/libcxgb4-rdmav34.so
+    /usr/lib64/libibverbs/libsiw-rdmav34.so
+    /usr/lib64/libibverbs/libvmw_pvrdma-rdmav34.so
+    /usr/lib64/libmlx5.so
+    /usr/lib64/libibverbs/librxe-rdmav34.so
+    /usr/lib64/libefa.so
+    /usr/lib64/libibverbs/libipathverbs-rdmav34.so
+    /usr/lib64/libibverbs/libhfi1verbs-rdmav34.so
+    /usr/lib64/libhns.so
+    /usr/lib64/libibverbs/libmthca-rdmav34.so
+    /usr/lib64/libibverbs/libqedr-rdmav34.so
+    /usr/lib64/libmlx4.so
+    /usr/lib64/libibverbs/libbnxt_re-rdmav34.so
+    /usr/lib64/libibverbs/libocrdma-rdmav34.so
+    /usr/lib64/libibverbs/libirdma-rdmav34.so)
 
-libkutacc_source_files(KUTACC_SRCS)
-add_library(${LIBKUTACC_NAME} SHARED ${KUTACC_SRCS})
 
-target_link_libraries(${LIBKUTACC_NAME} kutacc_core)
-target_link_libraries(${LIBKUTACC_NAME} numa)
-target_link_libraries(${LIBKUTACC_NAME} mpi)
-target_link_libraries(${LIBKUTACC_NAME} kupl)
-
-set_target_properties(${LIBKUTACC_NAME} PROPERTIES VERSION 1.26.2.0 SOVERSION 1)
+set_target_properties(${LIBKUTACC_NAME} PROPERTIES VERSION 26.2.0)
 
 #Install
 libkutacc_header_install()
 install(TARGETS ${LIBKUTACC_NAME} DESTINATION ${KUTACC_INSTALL_LIBDIR})
+

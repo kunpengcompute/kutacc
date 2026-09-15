@@ -1,41 +1,45 @@
 /*
  * Copyright (c) 2026 Huawei Technologies Co., Ltd. All Rights Reserved.
  *
- * KuTACC is licensed under Mulan PSL v2.
- * You can use this software according to the terms and conditions of the Mulan PSL v2.
- * You may obtain a copy of Mulan PSL v2 at:
- *        http://license.coscl.org.cn/MulanPSL2
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
- * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
- * See the Mulan PSL v2 for more details.
+ * Licensed under a modified version of the MIT license. See LICENSE in the project root for license information.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
-
-#ifndef KUTACC_MEMORY_H
-#define KUTACC_MEMORY_H
+#ifndef KMEMORY_H
+#define KMEMORY_H
 
 #include <cstdint>
 #include <memory>
 #include <malloc.h>
-#include "kutacc_malloc.h"
+#include "kpmalloc.h"
 #include "check.h"
+
+#define kutacc_aarch64_dmb(_op) asm volatile("dmb " #_op ::: "memory")
+#define kutacc_memory_cpu_load_fence() kutacc_aarch64_dmb(ishld)
 
 namespace kutacc {
 template <typename T>
-struct KuTACC_MallocDeleter {
+struct KpMallocDeleter {
     void operator()(T *ptr) const
     {
-        kutacc_free(ptr);
+        kp_free(ptr);
     }
 };
 
 template <typename T>
-inline std::unique_ptr<T[], KuTACC_MallocDeleter<T>> alloc(int64_t size)
+inline std::unique_ptr<T[], KpMallocDeleter<T> > alloc(int64_t size)
 {
     void *ptr;
     size_t real_size = static_cast<size_t>(size);
-    kutacc_posix_memalign(&ptr, 64, real_size * sizeof(T));
-    return std::unique_ptr<T[], KuTACC_MallocDeleter<T>>(static_cast<T *>(ptr));
+    kp_posix_memalign(&ptr, 64, real_size * sizeof(T));
+    return std::unique_ptr<T[], KpMallocDeleter<T>>(static_cast<T*>(ptr));
 }
-} // namespace kutacc
+}   // namespace kutacc
 
 #endif

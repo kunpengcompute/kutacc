@@ -1,25 +1,27 @@
 /*
  * Copyright (c) 2026 Huawei Technologies Co., Ltd. All Rights Reserved.
  *
- * KuTACC is licensed under Mulan PSL v2.
- * You can use this software according to the terms and conditions of the Mulan PSL v2.
- * You may obtain a copy of Mulan PSL v2 at:
- *        http://license.coscl.org.cn/MulanPSL2
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
- * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
- * See the Mulan PSL v2 for more details.
+ * Licensed under a modified version of the MIT license. See LICENSE in the project root for license information.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
-#ifndef KUTACC_SIGMOID_H
-#define KUTACC_SIGMOID_H
+#ifndef SIGMOID_H
+#define SIGMOID_H
 
 #include <cmath>
 #include <type_traits>
 
 #include "math/fast_exp.h"
-#include "wrapper/wrapper.h"
-
+#include "alphafold3/wrapper/wrapper.h"
 namespace kutacc {
+
 class Sigmoid {
 public:
     /**
@@ -46,6 +48,6 @@ public:
         return 1 / (exp_neg + 1);
     }
 };
-} // namespace kutacc
+}   // namespace kutacc
 
 #endif

@@ -1,33 +1,54 @@
+#
 # Copyright (c) 2026 Huawei Technologies Co., Ltd. All Rights Reserved.
 #
-# KuTACC is licensed under Mulan PSL v2.
-# You can use this software according to the terms and conditions of the Mulan PSL v2.
-# You may obtain a copy of Mulan PSL v2 at:
-#        http://license.coscl.org.cn/MulanPSL2
-# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-# INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-# See the Mulan PSL v2 for more details.
+# Licensed under a modified version of the MIT license. See LICENSE in the project root for license information.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
 
+# find all source files to compiler kutacc library
 function(libkutacc_source_files src_files)
     file(GLOB_RECURSE kutacc_srcs
-        attention/*.cpp
+        glu/*.cpp
+        alphafold3/*.cpp
+        async/*.cpp
         comm/*.cpp
-        linear/*.cpp
+        core/*.cpp
+        core/matmul/*.cpp
+        core/matmul/*.S
+        embedding/*.cpp
+        math/*.cpp
+        rope/*.cpp
+        silu_mul/*.cpp
+        mem_op/*.cpp
         tensor/*.cpp
-        utils/*.c
+        rmsnorm/*.cpp
         utils/*.cpp
         version/*.cpp
-        normalization/*.cpp
-        math/*.cpp
-        activation/*.cpp
+        attention/*.cpp
+        fusedmoe/*.cpp
+        mtp_op/*.cpp
+        sample/*.cpp
+        moe/*.cpp
+        pp/*.cpp
+        mt/*.cpp
+        core/kurmcl/*.cpp
+        mul_scalar_add/*.cpp
     )
-
     set(${src_files} ${kutacc_srcs} PARENT_SCOPE)
 endfunction()
 
+# install header
 function(libkutacc_header_install)
-
+    #install kutacc.h
     file(GLOB BASE_HEADER ${KUTACC_ROOT_DIR}/include/*.h)
 
-    install(FILES ${BASE_HEADER} DESTINATION ${KUTACC_INSTALL_INCLUDEDIR} PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+    install(FILES ${BASE_HEADER} DESTINATION ${KUTACC_INSTALL_INCLUDEDIR}
+        PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 endfunction()

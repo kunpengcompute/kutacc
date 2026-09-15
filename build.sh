@@ -2,23 +2,24 @@
 #
 # Copyright (c) 2026 Huawei Technologies Co., Ltd. All Rights Reserved.
 #
-# KuTACC is licensed under Mulan PSL v2.
-# You can use this software according to the terms and conditions of the Mulan PSL v2.
-# You may obtain a copy of Mulan PSL v2 at:
-#        http://license.coscl.org.cn/MulanPSL2
-# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-# INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-# See the Mulan PSL v2 for more details.
+# Licensed under a modified version of the MIT license. See LICENSE in the project root for license information.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
 set -e
 
 print_help(){
     echo "build.sh -- A tool for building KUTACC"
     echo "Parameters:"
-    echo "--compiler=[gcc[default]|clang]                           |   build with different compiler"
     echo "--cleanup=[off|on(default)]                               |   cleanup and install path before build"
-    echo "--build_kind=[src(default)|test|cida|fuzz]                |   build src or test or cida or fuzz suite"
-    echo "--build_type=[Release(default)|Debug|RelWithDebInfo]      |   build release or debug version"
+    echo "--parallel_backend=[kupl(default)|kupl_global|omp]        |   build with different parallel backend"
+    echo "--enable_extra_prefetch=[off(default)|on]                 |   enable extra prefetch instructions"
     echo "--install_path=absolute_path                              |   an absolute path for creating install folder"
     echo "--help                                                    |   print this help message"
     return
@@ -29,9 +30,21 @@ export KUTACC_CLEANUP="on"
 export KUTACC_COMPILER="clang"
 export KUTACC_BUILD_TYPE="Release"
 export KUTACC_BUILD_KIND="src"
+export KUTACC_PARALLEL_BACKEND="kupl"
+export KUTACC_ENABLE_EXTRA_PREFETCH="off"
 export KUTACC_INSTALL_PATH="$KUTACC_PROJ_PATH/install"
 export KUTACC_GENERATOR="Unix Makefiles"
 
+function check_glibc()
+{
+    local result=$(nm -gD "${KUTACC_INSTALL_PATH}/lib/libkutacc.so" | grep GLIBC_ | grep -v 2.17)
+    if [ ! -z "$result" ]; then
+        echo ""
+        echo "Check the compatibility of the following functions:"
+        echo $result
+        exit 1
+    fi
+}
 
 function install()
 {
@@ -50,14 +63,17 @@ function build_src()
     local source_path=$KUTACC_PROJ_PATH
     local build_path=$KUTACC_PROJ_PATH/build/src
     mkdir -p ${build_path} && cd ${build_path}
-    cmake -G "${KUTACC_GENERATOR}"                      \
-        -S ${source_path} -B ${build_path}              \
-        -DCMAKE_C_COMPILER=${KUTACC_C_COMPILER}         \
-        -DCMAKE_CXX_COMPILER=${KUTACC_CXX_COMPILER}     \
-        -DCMAKE_BUILD_TYPE=${KUTACC_BUILD_TYPE}         \
-        -DKUTACC_BUILD_KIND=${KUTACC_BUILD_KIND}        \
+    cmake -G "${KUTACC_GENERATOR}"                                      \
+        -S ${source_path} -B ${build_path}                              \
+        -DCMAKE_C_COMPILER=${KUTACC_C_COMPILER}                         \
+        -DCMAKE_CXX_COMPILER=${KUTACC_CXX_COMPILER}                     \
+        -DCMAKE_BUILD_TYPE=${KUTACC_BUILD_TYPE}                         \
+        -DKUTACC_BUILD_KIND=${KUTACC_BUILD_KIND}                        \
+        -DKUTACC_PARALLEL_BACKEND=${KUTACC_PARALLEL_BACKEND}            \
+        -DKUTACC_ENABLE_EXTRA_PREFETCH=${KUTACC_ENABLE_EXTRA_PREFETCH}  \
         -DCMAKE_INSTALL_PREFIX=${KUTACC_INSTALL_PATH}
     install
+    check_glibc
 }
 
 function build_test()
@@ -67,11 +83,14 @@ function build_test()
     local source_path=$KUTACC_PROJ_PATH/test/functest
     local build_path=$KUTACC_PROJ_PATH/build/functest
     mkdir -p ${build_path} && cd ${build_path}
-    cmake -G "${KUTACC_GENERATOR}"                      \
-        -S ${source_path} -B ${build_path}              \
-        -DCMAKE_C_COMPILER=${KUTACC_MPI_C_COMPILER}     \
-        -DCMAKE_CXX_COMPILER=${KUTACC_MPI_CXX_COMPILER} \
-        -DCMAKE_INSTALL_PREFIX=${KUTACC_INSTALL_PATH}
+    cmake -G "${KUTACC_GENERATOR}"                              \
+        -S ${source_path} -B ${build_path}                      \
+        -DCMAKE_C_COMPILER=${KUTACC_C_COMPILER}                 \
+        -DCMAKE_CXX_COMPILER=${KUTACC_CXX_COMPILER}             \
+        -DCMAKE_BUILD_TYPE=${KUTACC_BUILD_TYPE}                 \
+        -DKUTACC_BUILD_KIND=${KUTACC_BUILD_KIND}                \
+        -DCMAKE_INSTALL_PREFIX=${KUTACC_INSTALL_PATH}           \
+        -DCMAKE_GTEST_LIB=${KUTACC_GTEST_LIB}
     install
 }
 
@@ -82,11 +101,11 @@ function build_fuzz()
     local source_path=$KUTACC_PROJ_PATH/test/fuzz
     local build_path=$KUTACC_PROJ_PATH/build/fuzz
     mkdir -p ${build_path} && cd ${build_path}
-    cmake -G "${KUTACC_GENERATOR}"                      \
-        -S ${source_path} -B ${build_path}              \
-        -DCMAKE_C_COMPILER=${KUTACC_C_COMPILER}         \
-        -DCMAKE_CXX_COMPILER=${KUTACC_CXX_COMPILER}     \
-        -DCMAKE_BUILD_TYPE=${KUTACC_BUILD_TYPE}         \
+    cmake -G "${KUTACC_GENERATOR}"                              \
+        -S ${source_path} -B ${build_path}                      \
+        -DCMAKE_C_COMPILER=${KUTACC_C_COMPILER}                 \
+        -DCMAKE_CXX_COMPILER=${KUTACC_CXX_COMPILER}             \
+        -DCMAKE_BUILD_TYPE=${KUTACC_BUILD_TYPE}                 \
         -DCMAKE_INSTALL_PREFIX=${KUTACC_INSTALL_PATH}
     install
 }
@@ -114,16 +133,12 @@ function set_compiler()
             export CXX=$(which g++)
             KUTACC_C_COMPILER=$(which gcc)
             KUTACC_CXX_COMPILER=$(which g++)
-            KUTACC_MPI_C_COMPILER=$(which mpicc)
-            KUTACC_MPI_CXX_COMPILER=$(which mpic++)
             ;;
         clang)
             export CC=$(which clang)
             export CXX=$(which clang++)
             KUTACC_C_COMPILER=$(which clang)
             KUTACC_CXX_COMPILER=$(which clang++)
-            KUTACC_MPI_C_COMPILER=$(which mpicc)
-            KUTACC_MPI_CXX_COMPILER=$(which mpic++)
             ;;
         *)
             echo "Unsupported compiler $1."
@@ -189,6 +204,12 @@ function parse_args()
                         ;;
                 esac
                 ;;
+            --parallel_backend=*)
+                KUTACC_PARALLEL_BACKEND="${i#*=}"
+                ;;
+            --enable_extra_prefetch=*)
+                KUTACC_ENABLE_EXTRA_PREFETCH="${i#*=}"
+                ;;
             --help|-h)
                 print_help
                 exit 0
@@ -204,11 +225,13 @@ function parse_args()
 
 function main()
 {
-    echo "PROJ_PATH:    "   $KUTACC_PROJ_PATH
-    echo "INSTALL_PATH: "   $KUTACC_INSTALL_PATH
-    echo "BUILD_TYPE:   "   $KUTACC_BUILD_TYPE
-    echo "BUILD_KIND:   "   $KUTACC_BUILD_KIND
-    echo "GENERATOR:    "   $KUTACC_GENERATOR
+    echo "PROJ_PATH:             "  $KUTACC_PROJ_PATH
+    echo "INSTALL_PATH:          "  $KUTACC_INSTALL_PATH
+    echo "BUILD_TYPE:            "  $KUTACC_BUILD_TYPE
+    echo "BUILD_KIND:            "  $KUTACC_BUILD_KIND
+    echo "PARALLEL_BACKEND:      "  $KUTACC_PARALLEL_BACKEND
+    echo "ENABLE_EXTRA_PREFETCH: "  $KUTACC_ENABLE_EXTRA_PREFETCH
+    echo "GENERATOR:             "  $KUTACC_GENERATOR
     if [[ "${KUTACC_CLEANUP,,}" == "on" ]]; then
         cleanup
     fi

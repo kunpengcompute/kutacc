@@ -6,6 +6,7 @@
 #include <arm_sve.h>
 #include <arm_sme.h>
 #include <cstdint>
+#include <memory>
 
 constexpr float LN_EPS = 1e-5f;
 constexpr float DIV_EPS = 1e-3f;
@@ -25,7 +26,7 @@ void pack_weight_task_bf16(float *weight, bfloat16_t *packed_weight,int M, int N
     int avg_task =  all_task / max_threads;
     int busy_thread = all_task % max_threads;
 
-	kutacc::parallel_for(0, max_threads, 1, [&](int64_t start, int64_t end){
+    kutacc::parallel_for(0, max_threads, 1, [&](int64_t start, int64_t end){
         int tid = kutacc::get_thread_id();
         int task_num, task_start_idx, task_end_idx;
         if(tid < busy_thread)
@@ -54,9 +55,9 @@ void pack_weight_task_bf16(float *weight, bfloat16_t *packed_weight,int M, int N
             svbfloat16_t unz1,unz2,z1,z2;
             unz1 = svuzp1_bf16(svcvt_bf16_f32_z(pt32,data_0), svcvt_bf16_f32_z(pt32,data_1));
             unz2 = svuzp1_bf16(svcvt_bf16_f32_z(pt32,data_2), svcvt_bf16_f32_z(pt32,data_3));
-            z1 = svzip1_bf16(unz1, unz2); 
-            z2 = svzip2_bf16(unz1, unz2); 
-            svst1_bf16(pt16,packed_weight + col_index * M + row_index * vscalew, z1); 
+            z1 = svzip1_bf16(unz1, unz2);
+            z2 = svzip2_bf16(unz1, unz2);
+            svst1_bf16(pt16,packed_weight + col_index * M + row_index * vscalew, z1);
             svst1_bf16(pt16,packed_weight + (col_index + vscalew)* M + row_index*vscalew, z2);
         }
     });
@@ -274,23 +275,27 @@ void weighted_sum_v(
     }
 }
 void cvt_fp32_bf16(const float* input, __bf16* output, int size) {
-    for (int i = 0; i < size; i++) {
-        __attribute__((aligned(2))) uint16_t bf16_val;
+    kutacc::parallel_for(0, size, 1, [&](int64_t start, int64_t end) {
+        for (int64_t i = start; i < end; ++i) {
+            __attribute__((aligned(2))) uint16_t bf16_val;
 
-        // 安全读取 float 位模式
-        uint32_t f_bits = *reinterpret_cast<const uint32_t*>(&input[i]);
-        bf16_val = (uint16_t)(f_bits >> 16);
+            // 安全读取 float 位模式
+            uint32_t f_bits = *reinterpret_cast<const uint32_t*>(&input[i]);
+            bf16_val = (uint16_t)(f_bits >> 16);
 
-        // 安全写入 __bf16（唯一合法方式）
-        memcpy(&output[i], &bf16_val, 2);
-    }
+            // 安全写入 __bf16（唯一合法方式）
+            memcpy(&output[i], &bf16_val, 2);
+        }
+    });
 }
 void cvt_bf16_fp32(const bfloat16_t* input, float* output, int size) {
-    for (int i = 0; i < size; i++) {
-        uint16_t bf16_val = *reinterpret_cast<const uint16_t*>(&input[i]);
-        uint32_t f32_bits = (uint32_t)bf16_val << 16;
-        output[i] = *reinterpret_cast<float*>(&f32_bits);
-    }
+    kutacc::parallel_for(0, size, 1, [&](int64_t start, int64_t end) {
+        for (int64_t i = start; i < end; ++i) {
+            uint16_t bf16_val = *reinterpret_cast<const uint16_t*>(&input[i]);
+            uint32_t f32_bits = (uint32_t)bf16_val << 16;
+            output[i] = *reinterpret_cast<float*>(&f32_bits);
+        }
+    });
 }
 
 // input shape [D, A, B]
@@ -298,38 +303,23 @@ void cvt_bf16_fp32(const bfloat16_t* input, float* output, int size) {
 void transpose_DAB_to_BDA_sve(const float* input, float* output,
                               int D, int A, int B)
 {
-    svbool_t pg = svptrue_b32();
-    int vec_len = svcntw();
-
-    // 输出维度顺序 B -> D -> A
-    for (int b = 0; b < B; b++)
-    {
-        for (int d = 0; d < D; d++)
-        {
-            for (int a = 0; a < A; a++)
-            {
-                int d_off = 0;
-                // SVE 向量化批量拷贝
-                for (; d_off + vec_len <= D; d_off += vec_len)
-                {
-                    // 输入: [D, A, B] -> d, a, b
-                    long long in_idx  = (long long)(d + d_off) * A * B + (long long)a * B + b;
-                    // 输出: [B, D, A] -> b, d, a
-                    long long out_idx = (long long)b * D * A + (long long)(d + d_off) * A + a;
-
-                    svfloat32_t vec = svld1_f32(pg, input + in_idx);
-                    svst1_f32(pg, output + out_idx, vec);
-                }
-                // 剩余不足向量长度的标量处理
-                for (; d_off < D; d_off++)
-                {
-                    long long in_idx  = (long long)(d + d_off) * A * B + (long long)a * B + b;
-                    long long out_idx = (long long)b * D * A + (long long)(d + d_off) * A + a;
-                    output[out_idx] = input[in_idx];
-                }
+    // Neither the source nor destination is contiguous along the same axis.
+    // The previous SVE loop loaded adjacent B elements and stored them as
+    // adjacent A elements, and also indexed d + d_off past D.
+    kutacc::parallel_for(0, static_cast<int64_t>(B) * D, 1,
+        [&](int64_t start, int64_t end) {
+        for (int64_t bd = start; bd < end; ++bd) {
+            const int b = bd / D;
+            const int d = bd % D;
+            for (int a = 0; a < A; ++a) {
+                const int64_t in_idx =
+                    static_cast<int64_t>(d) * A * B + static_cast<int64_t>(a) * B + b;
+                const int64_t out_idx =
+                    static_cast<int64_t>(b) * D * A + static_cast<int64_t>(d) * A + a;
+                output[out_idx] = input[in_idx];
             }
         }
-    }
+    });
 }
 
 void transpose_BNHD_to_BHND_sve(const float* input, float* output,
@@ -338,9 +328,13 @@ void transpose_BNHD_to_BHND_sve(const float* input, float* output,
     svbool_t pg = svptrue_b32();
     int vec_len = svcntw();
 
-    for (int b = 0; b < B; b++) {
-        for (int h = 0; h < H; h++) {
-            for (int n = 0; n < N; n++) {
+    kutacc::parallel_for(0, static_cast<int64_t>(B) * H * N, 1,
+        [&](int64_t start, int64_t end) {
+        for (int64_t bhn = start; bhn < end; ++bhn) {
+                const int b = bhn / (H * N);
+                const int rem = bhn % (H * N);
+                const int h = rem / N;
+                const int n = rem % N;
 
                 int d = 0;
                 // 向量化搬运
@@ -357,9 +351,8 @@ void transpose_BNHD_to_BHND_sve(const float* input, float* output,
                     int out_idx = b*H*N*D + h*N*D + n*D + d;
                     output[out_idx] = input[in_idx];
                 }
-            }
         }
-    }
+    });
 }
 
 void einsum_ckj_cki_to_cij(
@@ -371,15 +364,14 @@ void einsum_ckj_cki_to_cij(
     long long slice_c_b = (long long)K * I;
     long long slice_c_out = (long long)I * J;
 
-    long long batch_c = (long long)batch * C;
-    for (long long bc = 0; bc < batch_c; bc++) {
-        // bc = batch_idx * C + c_idx
-        const float* a_c = a + bc * slice_c_a;
-        const float* b_c = b + bc * slice_c_b;
-        float* out_c = out + bc * slice_c_out;
-
-        // out_c[i,j] = sum_k a_c[k,j] * b_c[k,i]
-        for (int i = 0; i < I; i++) {
+    const int64_t rows = static_cast<int64_t>(batch) * C * I;
+    kutacc::parallel_for(0, rows, 1, [&](int64_t start, int64_t end) {
+        for (int64_t row = start; row < end; ++row) {
+            const int64_t bc = row / I;
+            const int i = row % I;
+            const float* a_c = a + bc * slice_c_a;
+            const float* b_c = b + bc * slice_c_b;
+            float* out_c = out + bc * slice_c_out;
             for (int j = 0; j < J; j++) {
                 float sum = 0.0f;
                 for (int k = 0; k < K; k++) {
@@ -390,7 +382,7 @@ void einsum_ckj_cki_to_cij(
                 out_c[i * J + j] = sum;
             }
         }
-    }
+    });
 }
 
 void einsum_cik_cjk_to_cij(
@@ -401,14 +393,14 @@ void einsum_cik_cjk_to_cij(
     long long slice_c_b = (long long)J * K;
     long long slice_c_out = (long long)I * J;
 
-    long long batch_c = (long long)batch * C;
-    for (long long bc = 0; bc < batch_c; bc++) {
-        const float* a_c = a + bc * slice_c_a;
-        const float* b_c = b + bc * slice_c_b;
-        float* out_c = out + bc * slice_c_out;
-
-        // out_c[i,j] = sum_k a_c[i,k] * b_c[j,k]
-        for (int i = 0; i < I; i++) {
+    const int64_t rows = static_cast<int64_t>(batch) * C * I;
+    kutacc::parallel_for(0, rows, 1, [&](int64_t start, int64_t end) {
+        for (int64_t row = start; row < end; ++row) {
+            const int64_t bc = row / I;
+            const int i = row % I;
+            const float* a_c = a + bc * slice_c_a;
+            const float* b_c = b + bc * slice_c_b;
+            float* out_c = out + bc * slice_c_out;
             for (int j = 0; j < J; j++) {
                 float sum = 0.0f;
                 for (int k = 0; k < K; k++) {
@@ -419,7 +411,7 @@ void einsum_cik_cjk_to_cij(
                 out_c[i * J + j] = sum;
             }
         }
-    }
+    });
 }
 
 
@@ -431,8 +423,11 @@ void layer_norm_chunk(
     int B, int T, int D
 ) {
     long long strideBT = (long long)T * D;
-    for (int b = 0; b < B; b++) {
-        for (int t = 0; t < T; t++) {
+    kutacc::parallel_for(0, static_cast<int64_t>(B) * T, 1,
+        [&](int64_t start, int64_t end) {
+        for (int64_t bt = start; bt < end; ++bt) {
+            const int b = bt / T;
+            const int t = bt % T;
             const float* ptr = act_in + (long long)b * strideBT + (long long)t * D;
             float sum = 0.f, sum_sq = 0.f;
             for (int d = 0; d < D; d++) {
@@ -450,7 +445,7 @@ void layer_norm_chunk(
                 out_ptr[d] = val * ln_w[d] + ln_b[d];
             }
         }
-    }
+    });
 }
 
 // 线性投影 weight [D,C], input [B,T,D] -> output [B,T,C]
@@ -460,8 +455,11 @@ void linear_proj(
 ) {
     long long strideBT = (long long)T * D;
     long long strideTC = (long long)T * C;
-    for (int b = 0; b < B; b++) {
-        for (int t = 0; t < T; t++) {
+    kutacc::parallel_for(0, static_cast<int64_t>(B) * T, 1,
+        [&](int64_t start, int64_t end) {
+        for (int64_t bt = start; bt < end; ++bt) {
+            const int b = bt / T;
+            const int t = bt % T;
             const float* a_ptr = act_ln + (long long)b * strideBT + (long long)t * D;
             float* o_ptr = out + (long long)b * strideTC + (long long)t * C;
             for (int c = 0; c < C; c++) {
@@ -472,7 +470,7 @@ void linear_proj(
                 o_ptr[c] = s;
             }
         }
-    }
+    });
 }
 
 /**
@@ -501,24 +499,31 @@ void compute_chunk(
     float* temp_TTF = einsum1 + (long long)T * C * C * T;
 
     // Step1: permute left_act [B,T,C] -> perm_left [B,C,T] (a,c,b)
-    for (int b = 0; b < B; b++) {
-        for (int t = 0; t < T; t++) {
+    kutacc::parallel_for(0, static_cast<int64_t>(B) * T, 1,
+        [&](int64_t start, int64_t end) {
+        for (int64_t bt = start; bt < end; ++bt) {
+            const int b = bt / T;
+            const int t = bt % T;
             for (int c = 0; c < C; c++) {
                 long long src = (long long)b * T * C + (long long)t * C + c;
                 long long dst = (long long)b * C * T + (long long)c * T + t;
                 perm_left[dst] = left_act[src];
             }
         }
-    }
+    });
 
     // Step2: einsum('acb,ade->dceb')
     // X: perm_left [a,c,b] = [B,C,T]
     // Y: right_act [a,d,e] = [B,T,C]
     // 求和维度 a(B)，输出 [d,c,e,b] = [T,C,C,T]
     // einsum1[d, c1, c2, b] = sum_{a=B} perm_left[a,c1,b] * right_act[a,d,c2]
-    for (int d = 0; d < T; d++) {      // d = T
-        for (int c1 = 0; c1 < C; c1++) {// c = C
-            for (int c2 = 0; c2 < C; c2++) {// e = C
+    const int64_t einsum1_rows = static_cast<int64_t>(T) * C * C;
+    kutacc::parallel_for(0, einsum1_rows, 1, [&](int64_t start, int64_t end) {
+        for (int64_t row = start; row < end; ++row) {
+            const int d = row / (C * C);
+            const int rem = row % (C * C);
+            const int c1 = rem / C;
+            const int c2 = rem % C;
                 for (int b = 0; b < T; b++) {// b = T
                     float sum = 0.f;
                     for (int a = 0; a < B; a++) { // 收缩维度 B
@@ -530,17 +535,20 @@ void compute_chunk(
                     long long out_idx = (long long)d * C * C * T + (long long)c1 * C * T + (long long)c2 * T + b;
                     einsum1[out_idx] = sum;
                 }
-            }
         }
-    }
+    });
 
     // Step3: einsum('dceb,cef->dbf') + bias
     // X: einsum1 [d,c,e,b] = [T,C,C,T]
     // W: output_w [c,e,f] = [C,C,F]
     // 输出 [d,b,f] = [T,T,F]
-    for (int d = 0; d < T; d++) {
-        for (int b = 0; b < T; b++) {
-            for (int f = 0; f < F; f++) {
+    const int64_t output_elements = static_cast<int64_t>(T) * T * F;
+    kutacc::parallel_for(0, output_elements, 1, [&](int64_t start, int64_t end) {
+        for (int64_t index = start; index < end; ++index) {
+                const int d = index / (T * F);
+                const int rem = index % (T * F);
+                const int b = rem / F;
+                const int f = rem % F;
                 float sum = output_b[f];
                 for (int c1 = 0; c1 < C; c1++) {
                     for (int c2 = 0; c2 < C; c2++) {
@@ -549,23 +557,24 @@ void compute_chunk(
                         sum += einsum1[e_idx] * output_w[w_idx];
                     }
                 }
-                long long tmp_idx = (long long)d * T * F + (long long)b * F + f;
-                temp_TTF[tmp_idx] = sum;
-            }
+                temp_TTF[index] = sum;
         }
-    }
+    });
 
     // Step4: permute(1,0,2) 输入 [d,b,f]=[T,T,F]，交换0/1维
     // src [d,b,f] → dst [b,d,f]
-    for (int d = 0; d < T; d++) {
-        for (int b = 0; b < T; b++) {
+    kutacc::parallel_for(0, static_cast<int64_t>(T) * T, 1,
+        [&](int64_t start, int64_t end) {
+        for (int64_t db = start; db < end; ++db) {
+            const int d = db / T;
+            const int b = db % T;
             for (int f = 0; f < F; f++) {
                 long long src = (long long)d * T * F + (long long)b * F + f;
                 long long dst = (long long)b * T * F + (long long)d * F + f;
                 out_buf[dst] = temp_TTF[src];
             }
         }
-    }
+    });
 }
 
 /**
@@ -598,67 +607,80 @@ void outer_product_mean_forward(
     float* workspace,
     int B, int T, int D, int C, int F
 ) {
-    alignas(64) float mask_bt[B * T];
-    alignas(64) float act_ln[B * T * D];
-    alignas(64) float left_act[B * T * C];
-    alignas(64) float right_act[B * T * C];
+    // Production shapes need tens of MiB here; keeping these VLAs on the
+    // default thread stack makes the correctness reference segfault.
+    std::unique_ptr<float[]> mask_bt_storage(new float[B * T]);
+    std::unique_ptr<float[]> act_ln_storage(new float[B * T * D]);
+    std::unique_ptr<float[]> left_act_storage(new float[B * T * C]);
+    std::unique_ptr<float[]> right_act_storage(new float[B * T * C]);
+    float* mask_bt = mask_bt_storage.get();
+    float* act_ln = act_ln_storage.get();
+    float* left_act = left_act_storage.get();
+    float* right_act = right_act_storage.get();
 
     // 1. mask拷贝
-    for (int b = 0; b < B; b++) {
-        for (int t = 0; t < T; t++) {
-            mask_bt[(long long)b * T + t] = mask[(long long)b * T + t];
+    kutacc::parallel_for(0, static_cast<int64_t>(B) * T, 1,
+        [&](int64_t start, int64_t end) {
+        for (int64_t i = start; i < end; ++i) {
+            mask_bt[i] = mask[i];
         }
-    }
+    });
 
     // 2. LayerNorm
     layer_norm_chunk(act, act_ln, ln_w, ln_b, B, T, D);
 
     // 3. left proj * mask
     linear_proj(act_ln, leftW, left_act, B, T, D, C);
-    for (int b = 0; b < B; b++) {
-        for (int t = 0; t < T; t++) {
-            float m = mask_bt[(long long)b * T + t];
+    kutacc::parallel_for(0, static_cast<int64_t>(B) * T, 1,
+        [&](int64_t start, int64_t end) {
+        for (int64_t bt = start; bt < end; ++bt) {
+            float m = mask_bt[bt];
             for (int c = 0; c < C; c++) {
-                long long idx = (long long)b * T * C + (long long)t * C + c;
+                long long idx = bt * C + c;
                 left_act[idx] *= m;
             }
         }
-    }
+    });
 
     // 4. right proj * mask
     linear_proj(act_ln, rightW, right_act, B, T, D, C);
-    for (int b = 0; b < B; b++) {
-        for (int t = 0; t < T; t++) {
-            float m = mask_bt[(long long)b * T + t];
+    kutacc::parallel_for(0, static_cast<int64_t>(B) * T, 1,
+        [&](int64_t start, int64_t end) {
+        for (int64_t bt = start; bt < end; ++bt) {
+            float m = mask_bt[bt];
             for (int c = 0; c < C; c++) {
-                long long idx = (long long)b * T * C + (long long)t * C + c;
+                long long idx = bt * C + c;
                 right_act[idx] *= m;
             }
         }
-    }
+    });
 
     // 5. 核心einsum计算
     compute_chunk(left_act, right_act, outW, outB, out, workspace, B, T, C, F);
 
-    // 6. norm = einsum('abc,adc->bdc') mask[B,T]
-    for (int b1 = 0; b1 < B; b1++) {
-        for (int b2 = 0; b2 < B; b2++) {
+    // 6. norm[t1,t2] = sum_b mask[b,t1] * mask[b,t2]
+    kutacc::parallel_for(0, static_cast<int64_t>(T) * T, 1,
+        [&](int64_t start, int64_t end) {
+        for (int64_t pair = start; pair < end; ++pair) {
+            const int t1 = pair / T;
+            const int t2 = pair % T;
             float sum = 0.f;
-            for (int t = 0; t < T; t++) {
-                sum += mask_bt[(long long)b1 * T + t] * mask_bt[(long long)b2 * T + t];
+            for (int b = 0; b < B; b++) {
+                sum += mask_bt[(long long)b * T + t1] * mask_bt[(long long)b * T + t2];
             }
-            norm_out[(long long)b1 * B + b2] = sum;
+            norm_out[pair] = sum;
         }
-    }
+    });
 
-    // 7. 归一化除法 out[t1,t2,f] /= (eps + norm[b,b])
-    for (int t1 = 0; t1 < T; t1++) {
-        for (int t2 = 0; t2 < T; t2++) {
-            float denom = DIV_EPS + norm_out[(long long)B * B / 2]; // norm[b,b]，B固定1024取自身对角
+    // 7. 归一化除法 out[t1,t2,f] /= (eps + norm[t1,t2])
+    kutacc::parallel_for(0, static_cast<int64_t>(T) * T, 1,
+        [&](int64_t start, int64_t end) {
+        for (int64_t pair = start; pair < end; ++pair) {
+            float denom = DIV_EPS + norm_out[pair];
             for (int f = 0; f < F; f++) {
-                long long idx = (long long)t1 * T * F + (long long)t2 * F + f;
+                long long idx = pair * F + f;
                 out[idx] /= denom;
             }
         }
-    }
+    });
 }

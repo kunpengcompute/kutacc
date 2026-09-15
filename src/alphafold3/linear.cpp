@@ -718,36 +718,24 @@ void bgemm_4vl_1vl_bf16_impl(bfloat16_t *mat1, bfloat16_t *mat2, bfloat16_t * re
 void bf16_gemm_pack_singlethread(int64_t r, int64_t c, int64_t split_r, int64_t split_c, bfloat16_t *input_ptr,
     bfloat16_t *output_ptr)
 {
-    gemm_pack_thread_task<bfloat16_t, false>(0, r, c, split_r, split_c, input_ptr, output_ptr, nullptr, 0, 1);
+    const int64_t pack_tasks = std::max<int64_t>(2, kutacc::get_thread_num());
+    for (int64_t thread_id = 0; thread_id < pack_tasks; ++thread_id) {
+        gemm_pack_thread_task<bfloat16_t, false>(thread_id, r, c, split_r, split_c,
+            input_ptr, output_ptr, nullptr, c, pack_tasks);
+    }
 }
 
 void bf16_packed_gemm_singlethread(int64_t m, int64_t n, int64_t k, MatrixTilingBlock t, bfloat16_t *act_ptr, bfloat16_t *weight_ptr,
     bfloat16_t *output_ptr, bfloat16_t *tmpc, float *bias, bool row_bias)
 {
-    int64_t tile_m = std::get<0>(t);
-    int64_t tile_n = std::get<1>(t);
-    int64_t tile_k = std::get<2>(t);
-    int64_t blocks_in_m = m / tile_m;
-    int64_t blocks_in_n = n / tile_n;
-    int64_t blocks_in_k = k / tile_k;
-    for(int64_t idx_m = 0; idx_m < blocks_in_m; idx_m++ ){
-        for(int64_t idx_n = 0; idx_n < blocks_in_n; idx_n++ ){
-            for(int64_t idx_k = 0; idx_k < blocks_in_k; idx_k++ ){
-                bfloat16_t *a = act_ptr + idx_m * tile_m * k + idx_k * tile_m * tile_k;
-                bfloat16_t *b = weight_ptr + idx_n * tile_n * k + idx_k * tile_n * tile_k;
-                bfloat16_t *c = output_ptr + n * m * idx_k + idx_m * tile_m * n + idx_n * tile_n;
-                float *sub_bias = nullptr;
-                if (bias != nullptr) {
-                    if (row_bias) {
-                        sub_bias = bias + idx_n * tile_n;
-                    } else {
-                        sub_bias = bias + idx_m * tile_m;
-                    }
-                }
-                bf16_packed_gemm_alpha1_beta0(tile_m, tile_n, n, tile_k, a, b, c, sub_bias, row_bias);
-            }
-        }
-    }
+    const int64_t tile_m = std::get<0>(t);
+    const int64_t tile_n = std::get<1>(t);
+    const int64_t tile_k = std::get<2>(t);
+    (void)tmpc;
+    KUTACC_CHECK(tile_m == m && tile_n == n && tile_k == k,
+        "bf16_packed_gemm_singlethread requires one complete tile");
+    bf16_packed_gemm_alpha1_beta0(m, n, n, k, act_ptr, weight_ptr,
+        output_ptr, bias, row_bias);
 }
 
 }//namespace kutacc

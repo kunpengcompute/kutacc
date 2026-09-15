@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
 {
     kutacc::global_parallel_launch([&] {
         MPI_Init(&argc, &argv);
-        shm_init();
+        shm_init(false);
         kutacc_time_init();
        // cases in AlphaFold3 inference
         test_all_gather_dim1<float>(64,8,64);

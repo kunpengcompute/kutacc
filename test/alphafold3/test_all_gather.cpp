@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
     kutacc::global_parallel_launch([&] {
         MPI_Init(&argc, &argv);
         std::cout << "after MPI_Init" <<std::endl;
-        shm_init();
+        shm_init(false);
         std::cout << "after shm_init" <<std::endl;
         kutacc_time_init();
         std::cout << "after time_init" <<std::endl;

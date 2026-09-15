@@ -18,7 +18,7 @@ void test_adap_zi(std::vector<int64_t> &cas, int batch, int num_channels, int hi
     int samples = cas[0];
     int bucket = cas[1];
 
-    int T = 50;
+    int T = 20;
 
     std::cout << "test adaptive_zi of " << samples << " samples, " << bucket << " buckets" << std::endl;
 
@@ -61,6 +61,10 @@ void test_adap_zi(std::vector<int64_t> &cas, int batch, int num_channels, int hi
     
     for(int i = 0; i < w_size; ++i){
         w[i] = rnd() * 1.0 / rnd.max();
+    }
+
+    for(int i = 0; i < w2_size; ++i){
+        w2[i] = rnd() * 1.0 / rnd.max();
     }
 
     for(int i = 0; i < b_size; ++i){

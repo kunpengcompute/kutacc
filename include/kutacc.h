@@ -2110,7 +2110,7 @@ kutacc_export void default_block_size(int64_t n_seq, int64_t n_res_gather, int64
  * @param [in] right_block_size Parallel chunk tile size right side
  */
 kutacc_export void outer_product_mean(bfloat16_t* input_act, bfloat16_t* left_proj_w, bfloat16_t* right_proj_w, bfloat16_t* left_proj, bfloat16_t* right_proj, 
-    bfloat16_t* left_proj_, bfloat16_t* right_proj_, bfloat16_t* right_proj_new, bfloat16_t* output_w, bfloat16_t* output_b, bfloat16_t* out, bfloat16_t* mask, 
+    bfloat16_t* left_proj_, bfloat16_t* right_proj_, bfloat16_t* right_proj_new, bfloat16_t* output_w, float* output_b, bfloat16_t* out, bfloat16_t* mask,
     bfloat16_t* norm, int64_t c_i, int64_t c_m, int64_t c_z, int64_t n_res, int64_t n_seq, int64_t n_res_gather, int64_t mask_bias, int64_t mask_stride0, 
     int64_t left_block_size, int64_t right_block_size);
 

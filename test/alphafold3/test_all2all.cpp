@@ -22,19 +22,20 @@ void test_all2all(int batch, int bucket, int size, int splited_dim)
 {
     FLASH_ASSERT(splited_dim == 0 || splited_dim == 1);
     std::cout << "test all2all in af3 of " << batch << " batch, " << bucket << " buckets, " << size << " size, " << " splited_dim " << splited_dim << std::endl;
-    std::mt19937 rnd(42);
+    // Rank-dependent data makes source-rank routing errors observable.
+    std::mt19937 rnd(42 + global_rank);
 
     int elem_num = batch * bucket * size; 
     size_t elem_size = sizeof(scalar_t);
     scalar_t *sendbuf = (scalar_t *)malloc( elem_num * sizeof(scalar_t));
     scalar_t* recvbuf = (scalar_t *)malloc( elem_num * sizeof(scalar_t));;
-    uint8_t* allgatherbuf;
+    scalar_t* allgather_data = (scalar_t*)malloc(
+        static_cast<size_t>(global_size) * elem_num * sizeof(scalar_t));
     for(int i = 0; i < elem_num; i++){
         sendbuf[i] = rnd() * 1.0 / rnd.max();
     }
-    int recv_dim0, recv_dim1, gather_dim0, gather_dim1;
+    int recv_dim0, recv_dim1, gather_dim1;
     if(splited_dim == 0){
-        gather_dim0 = batch * global_size;
         recv_dim0 = batch * global_size;
         recv_dim1 = bucket / global_size;
         gather_dim1 = bucket;
@@ -42,39 +43,50 @@ void test_all2all(int batch, int bucket, int size, int splited_dim)
         recv_dim0 = batch / global_size;
         gather_dim1 = bucket * global_size;
         recv_dim1 = bucket * global_size;
-        gather_dim0 = batch;
     }
     if(elem_size == 2){
         const uint16_t * sendbuf_u16 = reinterpret_cast<const uint16_t*>(sendbuf);
         uint16_t * recvbuf_u16 = reinterpret_cast<uint16_t*>(recvbuf);
         if(splited_dim == 0){ // [batch,bucket,size] -> [batch*8,bucket/8,size]
-            allgatherbuf = kutacc::shm_all_gather(sendbuf_u16, elem_num, elem_size, global_rank, global_size, (void*)local_buffer, kupl_socket_win);
+            MPI_Allgather(sendbuf, elem_num * elem_size, MPI_BYTE,
+                          allgather_data, elem_num * elem_size, MPI_BYTE, MPI_COMM_WORLD);
             kutacc::shm_all2all(sendbuf_u16, recvbuf_u16, recv_dim0, bucket, size, batch, bucket, 
             bucket*size, size, recv_dim1*size, size, global_rank, MAX_BUFFER_SIZE, (void*)local_buffer, kupl_socket_win);
         }else{ // [batch,bucket,size] -> [batch/8,bucket*8,size]
-            allgatherbuf = kutacc::shm_all_gather_dim1(sendbuf_u16, batch, bucket, size, global_rank, (void*)local_buffer, kupl_socket_win);
+            MPI_Allgather(sendbuf, elem_num * elem_size, MPI_BYTE,
+                          allgather_data, elem_num * elem_size, MPI_BYTE, MPI_COMM_WORLD);
             kutacc::shm_all2all(sendbuf_u16, recvbuf_u16, batch, recv_dim1, size, batch, bucket, 
             bucket*size, size, recv_dim1*size, size, global_rank, MAX_BUFFER_SIZE, (void*)local_buffer, kupl_socket_win);
        }
     }else{
         if(splited_dim == 0){ // [batch,bucket,size] -> [batch*8,bucket/8,size]
-            allgatherbuf = kutacc::shm_all_gather((float*)sendbuf, elem_num, elem_size, global_rank, global_size, (void*)local_buffer, kupl_socket_win);
+            MPI_Allgather(sendbuf, elem_num * elem_size, MPI_BYTE,
+                          allgather_data, elem_num * elem_size, MPI_BYTE, MPI_COMM_WORLD);
             kutacc::shm_all2all((float*)sendbuf, (float*)recvbuf, recv_dim0, bucket, size, batch, bucket, 
             bucket*size, size, recv_dim1*size, size, global_rank, MAX_BUFFER_SIZE, (void*)local_buffer, kupl_socket_win);
         }else{ // [batch,bucket,size] -> [batch/8,bucket*8,size]
-            allgatherbuf = kutacc::shm_all_gather_dim1((float*)sendbuf, batch, bucket, size, global_rank, (void*)local_buffer, kupl_socket_win);
+            MPI_Allgather(sendbuf, elem_num * elem_size, MPI_BYTE,
+                          allgather_data, elem_num * elem_size, MPI_BYTE, MPI_COMM_WORLD);
             kutacc::shm_all2all((float*)sendbuf, (float*)recvbuf, batch, recv_dim1, size, batch, bucket, 
             bucket*size, size, recv_dim1*size, size, global_rank, MAX_BUFFER_SIZE, (void*)local_buffer, kupl_socket_win);
        }
     }
-    scalar_t * allgather_data = (scalar_t *)allgatherbuf;
     float max_diff = 0.0f;
     for(int i = 0; i < recv_dim0; i++){
         for(int j = 0; j < recv_dim1; j++){
             for(int k = 0; k < size; k++){
                 int allgather_idx;
-                if(splited_dim == 0) allgather_idx = i*gather_dim1*size + (global_rank * recv_dim1 + j)*size + k;
-                else allgather_idx = (global_rank*recv_dim0 + i)*gather_dim1*size + j*size + k;
+                if (splited_dim == 0) {
+                    allgather_idx = i * gather_dim1 * size
+                                  + (global_rank * recv_dim1 + j) * size + k;
+                } else {
+                    const int src_rank = j / bucket;
+                    const int src_col = j % bucket;
+                    const int src_row = global_rank * recv_dim0 + i;
+                    allgather_idx = src_rank * elem_num
+                                  + src_row * bucket * size
+                                  + src_col * size + k;
+                }
                 int recv_idx = i*recv_dim1*size + j*size + k;
                 if(elem_size == 2){
                     uint16_t recv_u16 = *reinterpret_cast<const uint16_t*>(&recvbuf[recv_idx]);
@@ -89,6 +101,13 @@ void test_all2all(int batch, int bucket, int size, int splited_dim)
                 }
             }
         }
+    }
+
+    if (max_diff != 0.0f) {
+        std::cerr << "rank " << global_rank
+                  << ": all2all correctness check failed, max_diff = "
+                  << max_diff << std::endl;
+        MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
     }
 
     uint64_t start = kutacc_now_ns();
@@ -119,13 +138,16 @@ void test_all2all(int batch, int bucket, int size, int splited_dim)
     std::cout << "rank " << global_rank << ", elem_size = " << elem_size << ", elem_num = " << elem_num << ", max_diff = " << max_diff << ", avg_time = " << sum_time / test_times / 1000 << " us. "<< std::endl;
     free(sendbuf);
     free(recvbuf);
+    free(allgather_data);
 }
 
 int main(int argc, char *argv[])
 {
     kutacc::global_parallel_launch([&] {
         MPI_Init(&argc, &argv);
-        shm_init();
+        // This test only exercises intra-node KUPL shared memory. Initializing
+        // the RDMA transport makes it depend on an otherwise unused NIC.
+        shm_init(false);
         kutacc_time_init();
        // cases in AlphaFold3 inference
         test_all2all<float>(64,8,64,1);

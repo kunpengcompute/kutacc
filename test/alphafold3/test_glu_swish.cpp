@@ -17,7 +17,7 @@ void test_glu_swish(std::vector<int64_t> &cas, int num_channels, int num_interme
     int batch = cas[0];
     int bucket1 = cas[1];
     int bucket2 = bucket1;
-    int T = 10;
+    int T = 5;
 
     std::cout << "test glu_swish of " << batch << " batch, " << bucket1 << " buckets" << std::endl;
 
@@ -42,7 +42,7 @@ void test_glu_swish(std::vector<int64_t> &cas, int num_channels, int num_interme
         w[i] = rnd() * 1.0 / rnd.max();
     }
 
-    for(int t = 0; t < 10; ++t)
+    for(int t = 0; t < T; ++t)
     {
         bfloat16_t* w1 = (bfloat16_t*)w.get();
         const int aligned_elements = num_channels*num_intermediate;
@@ -61,7 +61,7 @@ void test_glu_swish(std::vector<int64_t> &cas, int num_channels, int num_interme
     std::chrono::duration<double> elapse_o_store1 = end_o_st - start_o_st;
     std::cout << "glu_swish_c34_bf16_bf16 time = " << elapse_o_store1.count()/T << std::endl;
 
-    for(int t = 0; t < 10; ++t)
+    for(int t = 0; t < T; ++t)
     {
         const int vscalew = svcntw();
         float* w1 = w.get();

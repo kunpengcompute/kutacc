@@ -8,7 +8,7 @@
 ### 2.1 环境依赖搭建
 
 #### 2.1.1 安装 HPCKit 编译套件
-该方案是用HPCKit组件中的毕昇编译器进行编译，HPCKit安装流程参考[官方指导文档](https://www.hikunpeng.com/developer/hpc/hpckit-download)。
+该方案是用HPCKit组件中的毕昇编译器进行编译，HPCKit安装流程参考[官方指导文档](docs/zh/kutacc开发指南.md)。
 
 KuTACC的安装需要使用HPCKit环境中的毕昇编译器、KUPL，配置流程参考[HPCKit介绍](https://www.hikunpeng.com/document/detail/zh/kunpenghpcs/hpckit/devg/KunpengHPCKit_developer_002.html)。
 

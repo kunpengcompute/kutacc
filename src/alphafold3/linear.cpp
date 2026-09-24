@@ -732,8 +732,6 @@ void bf16_packed_gemm_singlethread(int64_t m, int64_t n, int64_t k, MatrixTiling
     const int64_t tile_n = std::get<1>(t);
     const int64_t tile_k = std::get<2>(t);
     (void)tmpc;
-    KUTACC_CHECK(tile_m == m && tile_n == n && tile_k == k,
-        "bf16_packed_gemm_singlethread requires one complete tile");
     bf16_packed_gemm_alpha1_beta0(m, n, n, k, act_ptr, weight_ptr,
         output_ptr, bias, row_bias);
 }

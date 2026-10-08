@@ -8,7 +8,7 @@
 ### 2.1 环境依赖搭建
 
 #### 2.1.1 安装 HPCKit 编译套件
-该方案是用HPCKit组件中的毕昇编译器进行编译，HPCKit安装流程参考[官方指导文档](docs/zh/kutacc开发指南.md)。
+该方案是用HPCKit组件中的毕昇编译器进行编译，HPCKit安装流程参考[官方指导文档](https://www.hikunpeng.com/developer/hpc/hpckit-download)。
 
 KuTACC的安装需要使用HPCKit环境中的毕昇编译器、KUPL，配置流程参考[HPCKit介绍](https://www.hikunpeng.com/document/detail/zh/kunpenghpcs/hpckit/devg/KunpengHPCKit_developer_002.html)。
 
@@ -116,6 +116,26 @@ bash run_test.sh
 |:---------|------:|
 | DeepSeek | V3/R1 |
 | AlphaFold3 | 鲲鹏社区开源版本 |
+
+## 4. 学习教程
+
+若您已学习编译安装，对本项目有一定认知，并希望深入了解和体验项目，请访问下述详细教程。
+
+[KuTACC开发指南](docs/zh/kutacc开发指南.md): 介绍了 KuTACC 中基本数据结构，以及相关算子优化函数。
+
+## 目录结构
+
+```
+├── include                            # 项目工程头文件目录
+├── src                                # 项目源码目录
+├── test                               # 项目测试工程目录
+├── doc                                # 算子优化手册目录
+├── docs                               # 开发指南目录
+├── build.sh                           # 项目工程编译脚本
+├── CMakeLists.txt                     # 项目编译配置文件
+├── LICENSE                            # LICENSE 文件
+└── README.md                          # readme
+```
 
 ## License
 此代码遵循[OpenSoftware License 1.0](LICENSE)，继承自MIT。

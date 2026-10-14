@@ -194,48 +194,61 @@ void self_attention_linear_transpose(bfloat16_t* x, bfloat16_t* q_proj, float* q
     const int row_block_size = ROW_BLOCK_SIZE;
     const int col_block_size = COL_BLOCK_SIZE;
     int max_threads = kutacc::get_thread_num();
-    int avg_threads = max_threads / 4;
     int task_num = (M * N) / (row_block_size * col_block_size);
-    int avg_task = task_num / avg_threads;
-    int busy_thread = task_num - avg_task * avg_threads;
-    int row_task_num = N / col_block_size; 
-    kutacc::parallel_for(0, max_threads, 1, [&](int64_t start, int64_t end)
-    {
-        int tid = kutacc::get_thread_id();
-        int tid_local = tid % avg_threads;
-        int task_num, start_idx;
-        if(tid_local < busy_thread)
-        {
-            task_num = avg_task+1;
-            start_idx = tid_local*task_num;
-        }
-        else
-        {
-            task_num = avg_task;
-            start_idx = busy_thread*(task_num+1)+(tid_local-busy_thread)*task_num;
-        }
-        for(int task_idx = start_idx; task_idx < start_idx + task_num; task_idx++ )
-        {
+    int row_task_num = N / col_block_size;
+    auto run_task = [&](int projection_idx, int task_idx) {
             int row_index = (task_idx / row_task_num) * row_block_size;
             int col_index = (task_idx % row_task_num) * col_block_size;
             bfloat16_t *block_part_x_base = x + row_index * K ;
-            if(tid < avg_threads){
+            if(projection_idx == 0){
                 kutacc::bgemm_bias_4vl_1vl_bf16_transpose_impl(block_part_x_base, q_proj + col_index * K, q_proj_bias + col_index, q, \
                 row_block_size, col_block_size, K, row_index, col_index, seq_len, nheads, head_size);
             }
-            else if(tid < 2 * avg_threads){
+            else if(projection_idx == 1){
                 kutacc::bgemm_4vl_1vl_bf16_transpose_impl(block_part_x_base, k_proj + col_index * K, k, row_block_size, col_block_size, \
                 K, row_index, col_index, seq_len, nheads, head_size);
             }
-            else if(tid < 3 * avg_threads){
+            else if(projection_idx == 2){
                 kutacc::bgemm_4vl_1vl_bf16_transpose_impl(block_part_x_base, v_proj + col_index * K, v, row_block_size, col_block_size, \
                 K, row_index, col_index, seq_len, nheads, head_size);
             }
             else{
                 kutacc::bgemm_4vl_1vl_bf16_impl(block_part_x_base, g_proj + col_index * K, g + row_index * N + col_index, row_block_size, col_block_size, K, N);
             }
-        }
-    });
+    };
+
+    if(max_threads >= 4 && max_threads % 4 == 0)
+    {
+        int threads_per_projection = max_threads / 4;
+        kutacc::parallel_for(0, max_threads, 1, [&](int64_t start, int64_t end)
+        {
+            for(int64_t tid = start; tid < end; ++tid)
+            {
+                int projection_idx = tid / threads_per_projection;
+                int tid_local = tid % threads_per_projection;
+                int avg_task = task_num / threads_per_projection;
+                int busy_threads = task_num % threads_per_projection;
+                int start_idx = tid_local < busy_threads
+                    ? tid_local * (avg_task + 1)
+                    : busy_threads * (avg_task + 1) + (tid_local - busy_threads) * avg_task;
+                int end_idx = start_idx + avg_task + (tid_local < busy_threads);
+                for(int task_idx = start_idx; task_idx < end_idx; ++task_idx)
+                {
+                    run_task(projection_idx, task_idx);
+                }
+            }
+        });
+    }
+    else
+    {
+        kutacc::parallel_for(0, 4LL * task_num, 1, [&](int64_t start, int64_t end)
+        {
+            for(int64_t task = start; task < end; ++task)
+            {
+                run_task(task / task_num, task % task_num);
+            }
+        });
+    }
 }
 
 void self_attention_linear_transpose_nosingle(bfloat16_t* x, bfloat16_t* q_proj, float* q_proj_bias, bfloat16_t* k_proj, bfloat16_t* v_proj, bfloat16_t* g_proj,\
@@ -246,48 +259,61 @@ void self_attention_linear_transpose_nosingle(bfloat16_t* x, bfloat16_t* q_proj,
     const int row_block_size = ROW_BLOCK_SIZE;
     const int col_block_size = COL_BLOCK_SIZE;
     int max_threads = kutacc::get_thread_num();
-    int avg_threads = max_threads / 4;
     int task_num = (M * N) / (row_block_size * col_block_size);
-    int avg_task = task_num / avg_threads;
-    int busy_thread = task_num - avg_task * avg_threads;
-    int row_task_num = N / col_block_size; 
-    kutacc::parallel_for(0, max_threads, 1, [&](int64_t start, int64_t end)
-    {
-        int tid = kutacc::get_thread_id();
-        int tid_local = tid % avg_threads;
-        int task_num, start_idx;
-        if(tid_local < busy_thread)
-        {
-            task_num = avg_task+1;
-            start_idx = tid_local*task_num;
-        }
-        else
-        {
-            task_num = avg_task;
-            start_idx = busy_thread*(task_num+1)+(tid_local-busy_thread)*task_num;
-        }
-        for(int task_idx = start_idx; task_idx < start_idx + task_num; task_idx++ )
-        {
+    int row_task_num = N / col_block_size;
+    auto run_task = [&](int projection_idx, int task_idx) {
             int row_index = (task_idx / row_task_num) * row_block_size;
             int col_index = (task_idx % row_task_num) * col_block_size;
             bfloat16_t *block_part_x_base = x + row_index * K ;
-            if(tid < avg_threads){
+            if(projection_idx == 0){
                 kutacc::bgemm_bias_4vl_1vl_bf16_transpose_24_impl(block_part_x_base, q_proj + col_index * K, q_proj_bias + col_index, q, \
                 row_block_size, col_block_size, K, row_index, col_index, seq_len, nheads, head_size);
             }
-            else if(tid < 2 * avg_threads){
+            else if(projection_idx == 1){
                 kutacc::bgemm_4vl_1vl_bf16_transpose_24_impl(block_part_x_base, k_proj + col_index * K, k, row_block_size, col_block_size, \
                 K, row_index, col_index, seq_len, nheads, head_size);
             }
-            else if(tid < 3 * avg_threads){
+            else if(projection_idx == 2){
                 kutacc::bgemm_4vl_1vl_bf16_transpose_24_impl(block_part_x_base, v_proj + col_index * K, v, row_block_size, col_block_size, \
                 K, row_index, col_index, seq_len, nheads, head_size);
             }
             else{
                 kutacc::bgemm_4vl_1vl_bf16_impl(block_part_x_base, g_proj + col_index * K, g + row_index * N + col_index, row_block_size, col_block_size, K, N);
             }
-        }
-    });
+    };
+
+    if(max_threads >= 4 && max_threads % 4 == 0)
+    {
+        int threads_per_projection = max_threads / 4;
+        kutacc::parallel_for(0, max_threads, 1, [&](int64_t start, int64_t end)
+        {
+            for(int64_t tid = start; tid < end; ++tid)
+            {
+                int projection_idx = tid / threads_per_projection;
+                int tid_local = tid % threads_per_projection;
+                int avg_task = task_num / threads_per_projection;
+                int busy_threads = task_num % threads_per_projection;
+                int start_idx = tid_local < busy_threads
+                    ? tid_local * (avg_task + 1)
+                    : busy_threads * (avg_task + 1) + (tid_local - busy_threads) * avg_task;
+                int end_idx = start_idx + avg_task + (tid_local < busy_threads);
+                for(int task_idx = start_idx; task_idx < end_idx; ++task_idx)
+                {
+                    run_task(projection_idx, task_idx);
+                }
+            }
+        });
+    }
+    else
+    {
+        kutacc::parallel_for(0, 4LL * task_num, 1, [&](int64_t start, int64_t end)
+        {
+            for(int64_t task = start; task < end; ++task)
+            {
+                run_task(task / task_num, task % task_num);
+            }
+        });
+    }
 }
 
 void self_pack_pair_logits(bfloat16_t* pair_logits_ori, float* pair_logits_r, int nblock_q, int nblock_kv, int H, int Nq, int Nkv)

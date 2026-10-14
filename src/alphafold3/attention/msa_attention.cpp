@@ -511,41 +511,68 @@ void msa_attention_sme(
             }
         });
     }else{
-        int max_threads = kutacc::get_thread_num();
-        max_threads = std::min(max_threads, 32);
-        if(max_threads < 32)
+        int available_threads = kutacc::get_thread_num();
+        int worker_threads = available_threads >= 32 ? 32 :
+            (available_threads >= 24 ? 24 : available_threads);
+        bool use_thread_group_fast_path = worker_threads > 0 && h > 0 &&
+            worker_threads % h == 0;
+        int Bq = use_thread_group_fast_path ? worker_threads / h : 0;
+        use_thread_group_fast_path = use_thread_group_fast_path &&
+            Bq > 0 && q % Bq == 0 && (q / Bq) % Q_BLOCK_4 == 0;
+
+        if(!use_thread_group_fast_path)
         {
-            max_threads = 24;
+            int task_num_dim0 = q / Q_BLOCK_8;
+            int task_num = h * task_num_dim0;
+            int active_threads = std::min(worker_threads, task_num);
+            kutacc::parallel_for(0, active_threads, 1, [&](int64_t start, int64_t end) {
+                for(int64_t tid = start; tid < end; ++tid){
+                    int avg_task = task_num / active_threads;
+                    int busy_threads = task_num % active_threads;
+                    int task_start = tid < busy_threads
+                        ? tid * (avg_task + 1)
+                        : busy_threads * (avg_task + 1) + (tid - busy_threads) * avg_task;
+                    int task_end = task_start + avg_task + (tid < busy_threads);
+                    for(int task_idx = task_start; task_idx < task_end; ++task_idx){
+                        int h_idx = task_idx / task_num_dim0;
+                        int q_idx = (task_idx % task_num_dim0) * Q_BLOCK_8;
+                        float *part_logits_base = logits + h_idx * q * k + q_idx * k;
+                        bfloat16_t *part_v_base = v + h_idx * k * c;
+                        bfloat16_t *part_v_avg_base = v_avg + h_idx * q * c + q_idx * c;
+                        kutacc::msa_attention_sme_8_vsl_impl(part_logits_base, part_v_base,
+                            part_v_avg_base, h, q, k, b, c);
+                    }
+                }
+            });
+            return;
         }
-        const int Bq = max_threads / h ;
+
         const int q_stride = q / Bq;
-        kutacc::parallel_for(0, max_threads, 1, [&](int64_t start, int64_t end)
+        kutacc::parallel_for(0, worker_threads, 1, [&](int64_t start, int64_t end)
         {
-            int tid = kutacc::get_thread_id();
-            int h_step = tid / Bq;
-            int q_step = tid % Bq;
-            for(int q_idx = 0; q_idx < q_stride;)
+            for(int64_t tid = start; tid < end; ++tid)
             {
-                const int remain = q_stride - q_idx;
-                if(remain >= Q_BLOCK_8)
+                int h_step = tid / Bq;
+                int q_step = tid % Bq;
+                for(int q_idx = 0; q_idx < q_stride;)
                 {
-                    float *part_logits_base = logits + h_step * q * k + (q_step * q_stride + q_idx) * k;
-                    bfloat16_t *part_v_base = v + h_step * k * c;
-                    bfloat16_t *part_v_avg_base = v_avg + h_step * q * c + (q_step * q_stride + q_idx) * c;
-                    kutacc::msa_attention_sme_8_vsl_impl(part_logits_base, part_v_base, part_v_avg_base, h, q, k, b, c);
-                    q_idx += Q_BLOCK_8;
-                }
-                else if(remain >= Q_BLOCK_4)
-                {
-                    float *part_logits_base = logits + h_step * q * k + (q_step * q_stride + q_idx) * k;
-                    bfloat16_t *part_v_base = v + h_step * k * c;
-                    bfloat16_t *part_v_avg_base = v_avg + h_step * q * c + (q_step * q_stride + q_idx) * c;
-                    kutacc::msa_attention_sme_4_vsl_impl(part_logits_base, part_v_base, part_v_avg_base, h, q, k, b, c);
-                    q_idx += Q_BLOCK_4;
-                }
-                else
-                {
-                    break;
+                    const int remain = q_stride - q_idx;
+                    if(remain >= Q_BLOCK_8)
+                    {
+                        float *part_logits_base = logits + h_step * q * k + (q_step * q_stride + q_idx) * k;
+                        bfloat16_t *part_v_base = v + h_step * k * c;
+                        bfloat16_t *part_v_avg_base = v_avg + h_step * q * c + (q_step * q_stride + q_idx) * c;
+                        kutacc::msa_attention_sme_8_vsl_impl(part_logits_base, part_v_base, part_v_avg_base, h, q, k, b, c);
+                        q_idx += Q_BLOCK_8;
+                    }
+                    else
+                    {
+                        float *part_logits_base = logits + h_step * q * k + (q_step * q_stride + q_idx) * k;
+                        bfloat16_t *part_v_base = v + h_step * k * c;
+                        bfloat16_t *part_v_avg_base = v_avg + h_step * q * c + (q_step * q_stride + q_idx) * c;
+                        kutacc::msa_attention_sme_4_vsl_impl(part_logits_base, part_v_base, part_v_avg_base, h, q, k, b, c);
+                        q_idx += Q_BLOCK_4;
+                    }
                 }
             }
         });

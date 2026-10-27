@@ -3,7 +3,6 @@
 #include "utils/bf16.h"
 #include "utils/collapse.h"
 #include "wrapper/wrapper.h"
-#include <cstring>
 #include <iostream>
 namespace kutacc{
 
@@ -35,44 +34,31 @@ void default_block_size(int64_t n_seq, int64_t n_res_gather, int64_t &left_block
 void outer_product_mean(bfloat16_t* input_act, bfloat16_t* left_proj_w, bfloat16_t* right_proj_w, bfloat16_t* left_proj, bfloat16_t* right_proj, bfloat16_t* left_proj_, bfloat16_t* right_proj_,\
     bfloat16_t* right_proj_new, bfloat16_t* output_w, float* output_b, bfloat16_t* out, bfloat16_t* mask, bfloat16_t* norm, int64_t c_i, int64_t c_m, int64_t c_z, int64_t n_res, int64_t n_seq,\
     int64_t n_res_gather, int64_t mask_bias, int64_t mask_stride0, int64_t left_block_size, int64_t right_block_size)
-{
-    const int64_t projection_rows = n_res * n_seq;
-    const int64_t projection_block = n_seq;
-    const int64_t projection_nblocks =
-        (projection_rows + projection_block - 1) / projection_block;
-    kutacc::parallel_for(0, projection_nblocks, 1, [&](int64_t start, int64_t end) {
+{   
+    auto [tm, tn] = kutacc::compute_tm_tn(c_i, n_res * n_seq);
+    kutacc::MatrixTilingBlock tiling(tm, tn, c_m);
+    std::unique_ptr<bfloat16_t[]> pack_b(new bfloat16_t[n_res * n_seq * c_m]);
+    kutacc::bf16_gemm_pack(n_res * n_seq, c_m, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)input_act, pack_b.get());
+    {
         std::unique_ptr<bfloat16_t[]> pack_a(new bfloat16_t[c_i * c_m]);
-        std::unique_ptr<bfloat16_t[]> pack_b(new bfloat16_t[projection_block * c_m]);
-        std::unique_ptr<bfloat16_t[]> projected(new bfloat16_t[c_i * projection_block]);
-        std::unique_ptr<bfloat16_t[]> tmp(new bfloat16_t[c_i * projection_block]);
-        kutacc::bf16_gemm_pack_singlethread(c_i, c_m, c_i, c_m,
-                                            left_proj_w, pack_a.get());
-        for (int64_t block = start; block < end; ++block) {
-            const int64_t row_start = block * projection_block;
-            const int64_t row_count =
-                std::min(projection_block, projection_rows - row_start);
-            kutacc::bf16_gemm_pack_singlethread(row_count, c_m, row_count, c_m,
-                input_act + row_start * c_m, pack_b.get());
-            kutacc::MatrixTilingBlock projection_tiling(c_i, row_count, c_m);
-            kutacc::bf16_packed_gemm_singlethread(c_i, row_count, c_m, projection_tiling,
-                pack_a.get(), pack_b.get(), projected.get(), tmp.get(), nullptr, false);
-            for (int64_t ci = 0; ci < c_i; ++ci) {
-                std::memcpy(left_proj + ci * projection_rows + row_start,
-                            projected.get() + ci * row_count,
-                            static_cast<size_t>(row_count) * sizeof(bfloat16_t));
-            }
-
-            kutacc::bf16_gemm_pack_singlethread(c_i, c_m, c_i, c_m,
-                                                right_proj_w, pack_a.get());
-            kutacc::bf16_packed_gemm_singlethread(c_i, row_count, c_m, projection_tiling,
-                pack_a.get(), pack_b.get(), projected.get(), tmp.get(), nullptr, false);
-            for (int64_t ci = 0; ci < c_i; ++ci) {
-                std::memcpy(right_proj + ci * projection_rows + row_start,
-                            projected.get() + ci * row_count,
-                            static_cast<size_t>(row_count) * sizeof(bfloat16_t));
-            }
-        }
-    });
+        std::unique_ptr<__bf16[]> tmpc(new __bf16[c_i * n_res * n_seq]);
+        kutacc::bf16_gemm_pack(c_i, c_m, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)left_proj_w, pack_a.get());
+        kutacc::bf16_packed_gemm(c_i, n_res * n_seq, c_m, tiling, 
+            pack_a.get(),
+            pack_b.get(),
+            (__bf16 *)left_proj,
+            tmpc.get());
+    }
+    {
+        std::unique_ptr<bfloat16_t[]> pack_a(new bfloat16_t[c_i * c_m]);
+        std::unique_ptr<__bf16[]> tmpc(new __bf16[c_i * n_res * n_seq]);
+        kutacc::bf16_gemm_pack(c_i, c_m, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)right_proj_w, pack_a.get());
+        kutacc::bf16_packed_gemm(c_i, n_res * n_seq, c_m, tiling, 
+            pack_a.get(),
+            pack_b.get(),
+            (__bf16 *)right_proj,
+            tmpc.get());
+    }
     {
         kutacc::parallel_for(0, c_i * n_res, 1, [&](int64_t start, int64_t end) {
             int64_t ci, ri;
@@ -99,17 +85,18 @@ void outer_product_mean(bfloat16_t* input_act, bfloat16_t* left_proj_w, bfloat16
         });
     }
     {
-        std::unique_ptr<bfloat16_t[]> norm_pack_a(new bfloat16_t[n_res * n_seq]);
-        std::unique_ptr<bfloat16_t[]> norm_pack_b(new bfloat16_t[n_res_gather * n_seq]);
-        std::unique_ptr<bfloat16_t[]> norm_tmp(new bfloat16_t[n_res * n_res_gather]);
-        kutacc::bf16_gemm_pack_singlethread(n_res, n_seq, n_res, n_seq,
-                                            mask + mask_bias, norm_pack_a.get());
-        kutacc::bf16_gemm_pack_singlethread(n_res_gather, n_seq, n_res_gather, n_seq,
-                                            mask, norm_pack_b.get());
-        kutacc::MatrixTilingBlock single_tiling(n_res, n_res_gather, n_seq);
-        kutacc::bf16_packed_gemm_singlethread(n_res, n_res_gather, n_seq, single_tiling,
-                                              norm_pack_a.get(), norm_pack_b.get(),
-                                              norm, norm_tmp.get(), nullptr, false);
+        auto [tm, tn] = kutacc::compute_tm_tn(n_res, n_res_gather);
+        kutacc::MatrixTilingBlock tiling(tm, tn, n_seq);
+        std::unique_ptr<bfloat16_t[]> pack_a(new bfloat16_t[n_res * n_seq]);
+        std::unique_ptr<bfloat16_t[]> pack_b(new bfloat16_t[n_seq * n_res_gather]);
+        std::unique_ptr<__bf16[]> tmpc(new __bf16[n_res * n_res_gather]);
+        kutacc::bf16_gemm_pack(n_res, n_seq, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)(mask + mask_bias), pack_a.get());
+        kutacc::bf16_gemm_pack(n_res_gather, n_seq, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)mask, pack_b.get());
+        kutacc::bf16_packed_gemm(n_res, n_res_gather, n_seq, tiling, 
+            pack_a.get(),
+            pack_b.get(),
+            (__bf16 *)norm,
+            tmpc.get());
     }
     if (n_res_gather > n_res) {
         right_proj_ = right_proj_new;
@@ -131,16 +118,19 @@ void outer_product_mean(bfloat16_t* input_act, bfloat16_t* left_proj_w, bfloat16
 
                 int64_t m = (left_end - left_start) * c_i;
                 int64_t n = (right_end - right_start) * c_i;
+                auto [tm, tn] = kutacc::compute_tm_tn(m, n);
                 kutacc::MatrixTilingBlock tiling(m, n, n_seq);
                 std::unique_ptr<bfloat16_t[]> pack_a(new bfloat16_t[m * n_seq]);
-                std::unique_ptr<bfloat16_t[]> pack_b(new bfloat16_t[n * n_seq]);
-                std::unique_ptr<bfloat16_t[]> tmpc(new bfloat16_t[m * n]);
-                kutacc::bf16_gemm_pack_singlethread(m, n_seq, m, n_seq,
-                    left_proj_ + left_start * c_i * n_seq, pack_a.get());
-                kutacc::bf16_gemm_pack_singlethread(n, n_seq, n, n_seq,
-                    right_proj_ + right_start * c_i * n_seq, pack_b.get());
+                std::unique_ptr<bfloat16_t[]> pack_b(new bfloat16_t[n_seq * n]);
+                std::unique_ptr<__bf16[]> tmpc(new __bf16[m * n]);
+                kutacc::bf16_gemm_pack_singlethread(m, n_seq, std::get<0>(tiling), std::get<2>(tiling),
+                                    (__bf16 *)(left_proj_ + left_start * c_i * n_seq), pack_a.get());
+                kutacc::bf16_gemm_pack_singlethread(n, n_seq, std::get<1>(tiling), std::get<2>(tiling),
+                                    (__bf16 *)(right_proj_ + right_start * c_i * n_seq), pack_b.get());
+                auto chunk_buf = std::unique_ptr<bfloat16_t[]>(new bfloat16_t[m * n]);
                 kutacc::bf16_packed_gemm_singlethread(m, n, n_seq, tiling,
-                    pack_a.get(), pack_b.get(), chunk_buf.get(), tmpc.get(), nullptr, false);
+                                        pack_a.get(), pack_b.get(),
+                                        (__bf16 *)chunk_buf.get(), tmpc.get(), nullptr, false);
 
                 for (int64_t left_ri = left_start; left_ri < left_end; left_ri ++) {
                     for (int64_t right_ri = right_start; right_ri < right_end; right_ri ++) {

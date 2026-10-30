@@ -3,7 +3,31 @@
 #include "activation/sigmoid.h"
 #include "utils/bf16.h"
 #include "wrapper/wrapper.h"
+#include <cstdlib>
 namespace kutacc{
+
+namespace {
+// Allocate before SME_ON: malloc/mmap after smstart can drop ZA/streaming state.
+inline bfloat16_t* alloc_aligned_bf16(size_t nelem)
+{
+    void* p = nullptr;
+    size_t bytes = nelem * sizeof(bfloat16_t);
+    if (bytes == 0) {
+        bytes = 64;
+    }
+    bytes = (bytes + 63u) & ~size_t(63u);
+    if (posix_memalign(&p, 64, bytes) != 0) {
+        return nullptr;
+    }
+    return static_cast<bfloat16_t*>(p);
+}
+
+inline size_t pad_bf16_elems_64(size_t n)
+{
+    constexpr size_t k = 64 / sizeof(bfloat16_t);  // 32
+    return (n + k - 1) / k * k;
+}
+}  // namespace
 
 void pack_kernel_eq1(bfloat16_t* a, bfloat16_t* packed_a, int B, int N)
 {
@@ -70,6 +94,15 @@ void einsum_eq1(bfloat16_t* aptr, bfloat16_t* bptr, bfloat16_t* o, int C, int B,
     int avg_task = C / max_threads;
     int busy_thread = C-avg_task*max_threads;
 
+    // One contiguous pool outside SME_ON; each thread takes a 64B-aligned slice.
+    const size_t per_a = pad_bf16_elems_64(static_cast<size_t>(N) * static_cast<size_t>(N));
+    const size_t per_b = pad_bf16_elems_64(static_cast<size_t>(B) * static_cast<size_t>(N));
+    const size_t per_thread = per_a + per_b;
+    bfloat16_t* pool = alloc_aligned_bf16(per_thread * static_cast<size_t>(max_threads));
+    if (!pool) {
+        return;
+    }
+
     kutacc::parallel_for(0, max_threads, 1, [&](int64_t start, int64_t end)
     {
         SME_ON();
@@ -87,8 +120,8 @@ void einsum_eq1(bfloat16_t* aptr, bfloat16_t* bptr, bfloat16_t* o, int C, int B,
             start_idx = busy_thread*(task_num+1)+(tid-busy_thread)*task_num;
             end_idx = start_idx+task_num;
         }
-        alignas(64) bfloat16_t packed_a[N*N];
-        alignas(64) bfloat16_t packed_b[B*N];
+        bfloat16_t* packed_a = pool + static_cast<size_t>(tid) * per_thread;
+        bfloat16_t* packed_b = packed_a + per_a;
         svbool_t p16all = svptrue_b16();
         svfloat32_t zero_vec_f32 = svdup_f32(0.0f);
         svbfloat16_t zero_vec_b16 = svdup_bf16(0.0);
@@ -158,6 +191,7 @@ void einsum_eq1(bfloat16_t* aptr, bfloat16_t* bptr, bfloat16_t* o, int C, int B,
         }
         SME_OFF();  
     });
+    std::free(pool);
 }
 
 void pack_kernel_eq2(bfloat16_t* a, bfloat16_t* packed_a, int N, int B)
@@ -186,6 +220,14 @@ void einsum_eq2(bfloat16_t* aptr, bfloat16_t* bptr, bfloat16_t* o, int C, int B,
     int avg_task = C / max_threads;
     int busy_thread = C-avg_task*max_threads;
 
+    const size_t per_a = pad_bf16_elems_64(static_cast<size_t>(N) * static_cast<size_t>(N));
+    const size_t per_b = pad_bf16_elems_64(static_cast<size_t>(N) * static_cast<size_t>(B));
+    const size_t per_thread = per_a + per_b;
+    bfloat16_t* pool = alloc_aligned_bf16(per_thread * static_cast<size_t>(max_threads));
+    if (!pool) {
+        return;
+    }
+
     kutacc::parallel_for(0, max_threads, 1, [&](int64_t start, int64_t end)
     {
         SME_ON();
@@ -203,8 +245,8 @@ void einsum_eq2(bfloat16_t* aptr, bfloat16_t* bptr, bfloat16_t* o, int C, int B,
             start_idx = busy_thread*(task_num+1)+(tid-busy_thread)*task_num;
             end_idx = start_idx+task_num;
         }
-        alignas(64) bfloat16_t packed_a[N*N];
-        alignas(64) bfloat16_t packed_b[N*B];
+        bfloat16_t* packed_a = pool + static_cast<size_t>(tid) * per_thread;
+        bfloat16_t* packed_b = packed_a + per_a;
         svbool_t p16all = svptrue_b16();
         svbool_t p32all = svptrue_b32();
         svfloat32_t zero_vec_f32 = svdup_f32(0.0f);
@@ -262,6 +304,7 @@ void einsum_eq2(bfloat16_t* aptr, bfloat16_t* bptr, bfloat16_t* o, int C, int B,
         }
         SME_OFF();  
     });
+    std::free(pool);
 }
 void trianglemultiplication(bfloat16_t* input, bfloat16_t* input_act, bfloat16_t* output_w, bfloat16_t* gating_w, bfloat16_t* output, bfloat16_t* gate, int64_t c_0, int64_t c_1, int64_t c_2){
     int64_t nchannels = c_2;

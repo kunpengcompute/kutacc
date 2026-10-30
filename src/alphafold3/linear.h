@@ -65,4 +65,10 @@ void bf16_packed_gemm_singlethread(int64_t m, int64_t n, int64_t k, MatrixTiling
     bfloat16_t *act_ptr, bfloat16_t *weight_ptr,
     bfloat16_t *output_ptr, bfloat16_t *tmpc, float *bias, bool row_bias);
 
+void bf16_gemm_pack_arbitrary_threads(int64_t r, int64_t c, int64_t split_r, int64_t split_c,
+    bfloat16_t *input_ptr, bfloat16_t *output_ptr);
+void bf16_packed_gemm_arbitrary_threads(int64_t m, int64_t n, int64_t k, MatrixTilingBlock t,
+    bfloat16_t *act_ptr, bfloat16_t *weight_ptr, bfloat16_t *output_ptr,
+    bfloat16_t *tmpc, float *bias = nullptr, bool row_bias = false);
+
 }//namespace kutacc

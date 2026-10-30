@@ -649,8 +649,8 @@ void glu_swish_cbatch_fp32(float* xptr,float* resultptr, int batch ,int bucket,i
     kutacc::parallel_for(0, max_threads, 1, [&](int64_t start, int64_t end)
 	{
 		int thread_id = kutacc::get_thread_id();
-		int jlow = thread_id * colls_perthread + (thread_id < rem_colls ? thread_id * SVL_fp32* 4 : rem_colls * SVL_fp32* 4);
-		int jup = jlow + colls_perthread + (thread_id < rem_colls ? SVL_fp32* 4 : 0);
+		int jlow = (thread_id * colls_perthread + std::min(thread_id, rem_colls)) * SVL_fp32 * 4;
+		int jup = jlow + (colls_perthread + (thread_id < rem_colls)) * SVL_fp32 * 4;
 		svbool_t pt=svptrue_b32();
 		SME_ON();
 		for (int i=0;i<batch;i++) {

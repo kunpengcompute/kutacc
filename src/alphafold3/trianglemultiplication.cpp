@@ -271,9 +271,9 @@ void trianglemultiplication(bfloat16_t* input, bfloat16_t* input_act, bfloat16_t
         std::unique_ptr<bfloat16_t[]> pack_a(new bfloat16_t[c_0 * c_1 * c_2]);
         std::unique_ptr<bfloat16_t[]> pack_b(new bfloat16_t[c_2 * c_2]);
         std::unique_ptr<__bf16[]> tmpc(new __bf16[c_0 * c_1 * c_2]);
-        kutacc::bf16_gemm_pack(c_0 * c_1, c_2, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)input, pack_a.get());
-        kutacc::bf16_gemm_pack(c_2, c_2, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)output_w, pack_b.get());
-        kutacc::bf16_packed_gemm(c_0 * c_1, c_2, c_2, tiling, 
+        kutacc::bf16_gemm_pack_arbitrary_threads(c_0 * c_1, c_2, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)input, pack_a.get());
+        kutacc::bf16_gemm_pack_arbitrary_threads(c_2, c_2, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)output_w, pack_b.get());
+        kutacc::bf16_packed_gemm_arbitrary_threads(c_0 * c_1, c_2, c_2, tiling,
             pack_a.get(),
             pack_b.get(),
             (__bf16 *)output,
@@ -283,9 +283,9 @@ void trianglemultiplication(bfloat16_t* input, bfloat16_t* input_act, bfloat16_t
         std::unique_ptr<bfloat16_t[]> pack_a(new bfloat16_t[c_0 * c_1 * c_2]);
         std::unique_ptr<bfloat16_t[]> pack_b(new bfloat16_t[c_2 * c_2]);
         std::unique_ptr<__bf16[]> tmpc(new __bf16[c_0 * c_1 * c_2]);
-        kutacc::bf16_gemm_pack(c_0 * c_1, c_2, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)input_act, pack_a.get());
-        kutacc::bf16_gemm_pack(c_2, c_2, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)gating_w, pack_b.get());
-        kutacc::bf16_packed_gemm(c_0 * c_1, c_2, c_2, tiling, 
+        kutacc::bf16_gemm_pack_arbitrary_threads(c_0 * c_1, c_2, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)input_act, pack_a.get());
+        kutacc::bf16_gemm_pack_arbitrary_threads(c_2, c_2, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)gating_w, pack_b.get());
+        kutacc::bf16_packed_gemm_arbitrary_threads(c_0 * c_1, c_2, c_2, tiling,
             pack_a.get(),
             pack_b.get(),
             (__bf16 *)gate,

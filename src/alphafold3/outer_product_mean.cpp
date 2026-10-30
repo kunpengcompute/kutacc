@@ -38,12 +38,12 @@ void outer_product_mean(bfloat16_t* input_act, bfloat16_t* left_proj_w, bfloat16
     auto [tm, tn] = kutacc::compute_tm_tn(c_i, n_res * n_seq);
     kutacc::MatrixTilingBlock tiling(tm, tn, c_m);
     std::unique_ptr<bfloat16_t[]> pack_b(new bfloat16_t[n_res * n_seq * c_m]);
-    kutacc::bf16_gemm_pack(n_res * n_seq, c_m, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)input_act, pack_b.get());
+    kutacc::bf16_gemm_pack_arbitrary_threads(n_res * n_seq, c_m, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)input_act, pack_b.get());
     {
         std::unique_ptr<bfloat16_t[]> pack_a(new bfloat16_t[c_i * c_m]);
         std::unique_ptr<__bf16[]> tmpc(new __bf16[c_i * n_res * n_seq]);
-        kutacc::bf16_gemm_pack(c_i, c_m, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)left_proj_w, pack_a.get());
-        kutacc::bf16_packed_gemm(c_i, n_res * n_seq, c_m, tiling, 
+        kutacc::bf16_gemm_pack_arbitrary_threads(c_i, c_m, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)left_proj_w, pack_a.get());
+        kutacc::bf16_packed_gemm_arbitrary_threads(c_i, n_res * n_seq, c_m, tiling,
             pack_a.get(),
             pack_b.get(),
             (__bf16 *)left_proj,
@@ -52,8 +52,8 @@ void outer_product_mean(bfloat16_t* input_act, bfloat16_t* left_proj_w, bfloat16
     {
         std::unique_ptr<bfloat16_t[]> pack_a(new bfloat16_t[c_i * c_m]);
         std::unique_ptr<__bf16[]> tmpc(new __bf16[c_i * n_res * n_seq]);
-        kutacc::bf16_gemm_pack(c_i, c_m, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)right_proj_w, pack_a.get());
-        kutacc::bf16_packed_gemm(c_i, n_res * n_seq, c_m, tiling, 
+        kutacc::bf16_gemm_pack_arbitrary_threads(c_i, c_m, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)right_proj_w, pack_a.get());
+        kutacc::bf16_packed_gemm_arbitrary_threads(c_i, n_res * n_seq, c_m, tiling,
             pack_a.get(),
             pack_b.get(),
             (__bf16 *)right_proj,
@@ -90,9 +90,9 @@ void outer_product_mean(bfloat16_t* input_act, bfloat16_t* left_proj_w, bfloat16
         std::unique_ptr<bfloat16_t[]> pack_a(new bfloat16_t[n_res * n_seq]);
         std::unique_ptr<bfloat16_t[]> pack_b(new bfloat16_t[n_seq * n_res_gather]);
         std::unique_ptr<__bf16[]> tmpc(new __bf16[n_res * n_res_gather]);
-        kutacc::bf16_gemm_pack(n_res, n_seq, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)(mask + mask_bias), pack_a.get());
-        kutacc::bf16_gemm_pack(n_res_gather, n_seq, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)mask, pack_b.get());
-        kutacc::bf16_packed_gemm(n_res, n_res_gather, n_seq, tiling, 
+        kutacc::bf16_gemm_pack_arbitrary_threads(n_res, n_seq, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)(mask + mask_bias), pack_a.get());
+        kutacc::bf16_gemm_pack_arbitrary_threads(n_res_gather, n_seq, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)mask, pack_b.get());
+        kutacc::bf16_packed_gemm_arbitrary_threads(n_res, n_res_gather, n_seq, tiling,
             pack_a.get(),
             pack_b.get(),
             (__bf16 *)norm,

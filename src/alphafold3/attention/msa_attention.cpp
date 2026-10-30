@@ -587,9 +587,9 @@ void msa_attention_linear(bfloat16_t *act, bfloat16_t *pair_act, bfloat16_t *pai
         std::unique_ptr<bfloat16_t[]> pack_a(new bfloat16_t[output_batches * seq_len * noutput_channels]);
         std::unique_ptr<bfloat16_t[]> pack_b(new bfloat16_t[noutput_channels * nheads]);
         std::unique_ptr<__bf16[]> tmpc(new __bf16[output_batches * seq_len * nheads]);
-        kutacc::bf16_gemm_pack(output_batches * seq_len, noutput_channels, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)pair_act, pack_a.get());
-        kutacc::bf16_gemm_pack(nheads, noutput_channels, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)pair_logits_w, pack_b.get());
-        kutacc::bf16_packed_gemm(output_batches * seq_len, nheads, noutput_channels, tiling, 
+        kutacc::bf16_gemm_pack_arbitrary_threads(output_batches * seq_len, noutput_channels, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)pair_act, pack_a.get());
+        kutacc::bf16_gemm_pack_arbitrary_threads(nheads, noutput_channels, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)pair_logits_w, pack_b.get());
+        kutacc::bf16_packed_gemm_arbitrary_threads(output_batches * seq_len, nheads, noutput_channels, tiling,
             pack_a.get(),
             pack_b.get(),
             (__bf16 *)pair_logits,
@@ -598,12 +598,12 @@ void msa_attention_linear(bfloat16_t *act, bfloat16_t *pair_act, bfloat16_t *pai
     auto [tm, tn] = kutacc::compute_tm_tn(batch * seq_len, nchannels);
     kutacc::MatrixTilingBlock tiling(tm, tn, nchannels);
     std::unique_ptr<bfloat16_t[]> pack_a(new bfloat16_t[batch * seq_len * nchannels]);
-    kutacc::bf16_gemm_pack(batch * seq_len, nchannels, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)act, pack_a.get());
+    kutacc::bf16_gemm_pack_arbitrary_threads(batch * seq_len, nchannels, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)act, pack_a.get());
     {
         std::unique_ptr<bfloat16_t[]> pack_b(new bfloat16_t[nchannels * nchannels]);
         std::unique_ptr<__bf16[]> tmpc(new __bf16[batch * seq_len * nchannels]);
-        kutacc::bf16_gemm_pack(nchannels, nchannels, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)value_w, pack_b.get());
-        kutacc::bf16_packed_gemm(batch * seq_len, nchannels, nchannels, tiling, 
+        kutacc::bf16_gemm_pack_arbitrary_threads(nchannels, nchannels, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)value_w, pack_b.get());
+        kutacc::bf16_packed_gemm_arbitrary_threads(batch * seq_len, nchannels, nchannels, tiling,
             pack_a.get(),
             pack_b.get(),
             (__bf16 *)v,
@@ -612,8 +612,8 @@ void msa_attention_linear(bfloat16_t *act, bfloat16_t *pair_act, bfloat16_t *pai
     {
         std::unique_ptr<bfloat16_t[]> pack_b(new bfloat16_t[nchannels * nchannels]);
         std::unique_ptr<__bf16[]> tmpc(new __bf16[batch * seq_len * nchannels]);
-        kutacc::bf16_gemm_pack(nchannels, nchannels, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)gating_w, pack_b.get());
-        kutacc::bf16_packed_gemm(batch * seq_len, nchannels, nchannels, tiling, 
+        kutacc::bf16_gemm_pack_arbitrary_threads(nchannels, nchannels, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)gating_w, pack_b.get());
+        kutacc::bf16_packed_gemm_arbitrary_threads(batch * seq_len, nchannels, nchannels, tiling,
             pack_a.get(),
             pack_b.get(),
             (__bf16 *)gate,
@@ -669,9 +669,9 @@ void msa_attention_out(bfloat16_t *v, bfloat16_t *v_avg, bfloat16_t *gate, bfloa
         std::unique_ptr<bfloat16_t[]> pack_a(new bfloat16_t[batch * seq_len * nchannels]);
         std::unique_ptr<bfloat16_t[]> pack_b(new bfloat16_t[nchannels * nchannels]);
         std::unique_ptr<__bf16[]> tmpc(new __bf16[batch * seq_len * nchannels]);
-        kutacc::bf16_gemm_pack(batch * seq_len, nchannels, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)v_avg, pack_a.get());
-        kutacc::bf16_gemm_pack(nchannels, nchannels, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)v, pack_b.get());
-        kutacc::bf16_packed_gemm(batch * seq_len, nchannels, nchannels, tiling, 
+        kutacc::bf16_gemm_pack_arbitrary_threads(batch * seq_len, nchannels, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)v_avg, pack_a.get());
+        kutacc::bf16_gemm_pack_arbitrary_threads(nchannels, nchannels, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)v, pack_b.get());
+        kutacc::bf16_packed_gemm_arbitrary_threads(batch * seq_len, nchannels, nchannels, tiling,
             pack_a.get(),
             pack_b.get(),
             (__bf16 *)out,

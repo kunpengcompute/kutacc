@@ -51,24 +51,24 @@ void test_all2all(int batch, int bucket, int size, int splited_dim)
             MPI_Allgather(sendbuf, elem_num * elem_size, MPI_BYTE,
                           allgather_data, elem_num * elem_size, MPI_BYTE, MPI_COMM_WORLD);
             kutacc::shm_all2all(sendbuf_u16, recvbuf_u16, recv_dim0, bucket, size, batch, bucket, 
-            bucket*size, size, recv_dim1*size, size, global_rank, MAX_BUFFER_SIZE, (void*)local_buffer, kupl_socket_win);
+            bucket*size, size, recv_dim1*size, size, global_rank, global_size, MAX_BUFFER_SIZE, (void*)local_buffer, kupl_socket_win);
         }else{ // [batch,bucket,size] -> [batch/8,bucket*8,size]
             MPI_Allgather(sendbuf, elem_num * elem_size, MPI_BYTE,
                           allgather_data, elem_num * elem_size, MPI_BYTE, MPI_COMM_WORLD);
             kutacc::shm_all2all(sendbuf_u16, recvbuf_u16, batch, recv_dim1, size, batch, bucket, 
-            bucket*size, size, recv_dim1*size, size, global_rank, MAX_BUFFER_SIZE, (void*)local_buffer, kupl_socket_win);
+            bucket*size, size, recv_dim1*size, size, global_rank, global_size, MAX_BUFFER_SIZE, (void*)local_buffer, kupl_socket_win);
        }
     }else{
         if(splited_dim == 0){ // [batch,bucket,size] -> [batch*8,bucket/8,size]
             MPI_Allgather(sendbuf, elem_num * elem_size, MPI_BYTE,
                           allgather_data, elem_num * elem_size, MPI_BYTE, MPI_COMM_WORLD);
             kutacc::shm_all2all((float*)sendbuf, (float*)recvbuf, recv_dim0, bucket, size, batch, bucket, 
-            bucket*size, size, recv_dim1*size, size, global_rank, MAX_BUFFER_SIZE, (void*)local_buffer, kupl_socket_win);
+            bucket*size, size, recv_dim1*size, size, global_rank, global_size, MAX_BUFFER_SIZE, (void*)local_buffer, kupl_socket_win);
         }else{ // [batch,bucket,size] -> [batch/8,bucket*8,size]
             MPI_Allgather(sendbuf, elem_num * elem_size, MPI_BYTE,
                           allgather_data, elem_num * elem_size, MPI_BYTE, MPI_COMM_WORLD);
             kutacc::shm_all2all((float*)sendbuf, (float*)recvbuf, batch, recv_dim1, size, batch, bucket, 
-            bucket*size, size, recv_dim1*size, size, global_rank, MAX_BUFFER_SIZE, (void*)local_buffer, kupl_socket_win);
+            bucket*size, size, recv_dim1*size, size, global_rank, global_size, MAX_BUFFER_SIZE, (void*)local_buffer, kupl_socket_win);
        }
     }
     float max_diff = 0.0f;
@@ -117,18 +117,18 @@ void test_all2all(int batch, int bucket, int size, int splited_dim)
             uint16_t * recvbuf_u16 = reinterpret_cast<uint16_t*>(recvbuf);
             if(splited_dim == 0){ // [batch,bucket,size] -> [batch*8,bucket/8,size]
                 kutacc::shm_all2all(sendbuf_u16, recvbuf_u16, recv_dim0, bucket, size, batch, bucket, 
-                bucket*size, size, recv_dim1*size, size, global_rank, MAX_BUFFER_SIZE, (void*)local_buffer, kupl_socket_win);
+                bucket*size, size, recv_dim1*size, size, global_rank, global_size, MAX_BUFFER_SIZE, (void*)local_buffer, kupl_socket_win);
             }else{ // [batch,bucket,size] -> [batch/8,bucket*8,size]
                 kutacc::shm_all2all(sendbuf_u16, recvbuf_u16, batch, recv_dim1, size, batch, bucket, 
-                bucket*size, size, recv_dim1*size, size, global_rank, MAX_BUFFER_SIZE, (void*)local_buffer, kupl_socket_win);
+                bucket*size, size, recv_dim1*size, size, global_rank, global_size, MAX_BUFFER_SIZE, (void*)local_buffer, kupl_socket_win);
             }
         }else{
             if(splited_dim == 0){ // [batch,bucket,size] -> [batch*8,bucket/8,size]
                 kutacc::shm_all2all((float*)sendbuf, (float*)recvbuf, recv_dim0, bucket, size, batch, bucket, 
-                bucket*size, size, recv_dim1*size, size, global_rank, MAX_BUFFER_SIZE, (void*)local_buffer, kupl_socket_win);
+                bucket*size, size, recv_dim1*size, size, global_rank, global_size, MAX_BUFFER_SIZE, (void*)local_buffer, kupl_socket_win);
             }else{ // [batch,bucket,size] -> [batch/8,bucket*8,size]
                 kutacc::shm_all2all((float*)sendbuf, (float*)recvbuf, batch, recv_dim1, size, batch, bucket, 
-                bucket*size, size, recv_dim1*size, size, global_rank, MAX_BUFFER_SIZE, (void*)local_buffer, kupl_socket_win);
+                bucket*size, size, recv_dim1*size, size, global_rank, global_size, MAX_BUFFER_SIZE, (void*)local_buffer, kupl_socket_win);
             }
         }
     }

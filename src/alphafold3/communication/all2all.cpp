@@ -2,8 +2,10 @@
 #include <omp.h>
 #include <unistd.h>
 #include <string.h>
+#include <atomic>
 #include <arm_sve.h>
 #include <iostream>
+#include <vector>
 #include "kutacc.h"
 #include "utils/collapse.h"
 namespace kutacc{
@@ -21,13 +23,15 @@ void shm_all2all(
     int64_t output_stride0,
     int64_t output_stride1,
     int64_t m_rank,
+    int64_t m_world_size,
     int64_t m_buffer_size,
     void * m_kupl_recvbuf,
     kupl_shm_win_h m_recvbuf_win
 ) {
-    const int64_t world_size = 8;
+    // Active path: push into peer windows + local memory fence before kupl_shm_fence.
+    // Pull path (write own window, then read peers) is kept commented below for bisect.
+    const int64_t world_size = m_world_size;
     const int64_t rank = m_rank;
-    // const int64_t inner_size = get_inner_size(data);
     const int64_t block_m = (m_full + world_size - 1) / world_size;
     const int64_t block_n = (n_full + world_size - 1) / world_size;
 
@@ -38,24 +42,20 @@ void shm_all2all(
     void* shared_buffer = m_kupl_recvbuf;
     if(shared_buffer == nullptr){
         std::cout << "Shared buffer not initialized" << std::endl;
-    } 
-    uint8_t* buffers[8];
-    for (int i = 0; i < 8; ++i) {
-        kupl_shm_win_query(m_recvbuf_win, i, (void**)&buffers[i]);
+    }
+    std::vector<uint8_t*> buffers(static_cast<size_t>(world_size));
+    for (int64_t i = 0; i < world_size; ++i) {
+        kupl_shm_win_query(m_recvbuf_win, static_cast<int>(i), (void**)&buffers[i]);
     }
 
     const int64_t elem_size = sizeof(data_t);
-    const int64_t total_shared_size = 768*768*1024;
-    const int64_t actual_per_rank = total_shared_size / world_size;
-    const int64_t required_per_rank = world_size * block_m * block_n * inner_size * elem_size;
-
     const int64_t denominator = world_size * block_n * inner_size * elem_size;
     const int64_t subblock_m = std::max<int64_t>(1, m_buffer_size / denominator);
 
     for (int64_t block_mi_start = 0; block_mi_start < block_m; block_mi_start += subblock_m) {
         int64_t size_m = std::min(subblock_m, block_m - block_mi_start);
         int64_t par_size = world_size * size_m * block_n;
-        // ============ STAGE 1: Scatter ============
+        // ============ STAGE 1: Scatter (push into peer windows) ============
         kutacc::parallel_for(0, par_size, 1, [&](int64_t start, int64_t end) {
             kutacc::collapse_for(start, end, world_size, size_m, block_n,
                 [&](int64_t target_rank, int64_t sbmi, int64_t bni) {
@@ -112,9 +112,14 @@ void shm_all2all(
                             }
                         }
                     } else {
-                        // Send to others
+                        // Push: write into the peer's window. Slot indexed by sender rank.
                         data_t* dst = reinterpret_cast<data_t*>(buffers[target_rank]) +
                                       (rank * block_m * block_n + local_m_idx * block_n + local_n_idx) * inner_size;
+
+                        // Pull alternative (commented): write only into our own window.
+                        // Slot indexed by destination rank; stage 2 then reads peers.
+                        // data_t* dst = reinterpret_cast<data_t*>(buffers[rank]) +
+                        //               (target_rank * block_m * block_n + local_m_idx * block_n + local_n_idx) * inner_size;
 
                         int64_t i = 0;
                         if(elem_size == 2){
@@ -135,9 +140,10 @@ void shm_all2all(
                     }
                 });
         });
+        std::atomic_thread_fence(std::memory_order_seq_cst);
         kupl_shm_fence(m_recvbuf_win);
 
-        // ============ STAGE 2: Gather ============
+        // ============ STAGE 2: Gather from local window (peers pushed here) ============
         kutacc::parallel_for(0, par_size, 1, [&](int64_t start, int64_t end) {
             kutacc::collapse_for(start, end, world_size, size_m, block_n,
                 [&](int64_t src_rank, int64_t sbmi, int64_t bni) {
@@ -167,8 +173,14 @@ void shm_all2all(
 
                     if (!valid_in_output) return;
 
+                    // Push path: peers wrote into our window at slot indexed by src_rank.
                     data_t* src_ptr = reinterpret_cast<data_t*>(buffers[rank]) +
                                       (src_rank * block_m * block_n + local_m_idx * block_n + local_n_idx) * inner_size;
+
+                    // Pull alternative (commented): read from peer window at our slot.
+                    // data_t* src_ptr = reinterpret_cast<data_t*>(buffers[src_rank]) +
+                    //                   (rank * block_m * block_n + local_m_idx * block_n + local_n_idx) * inner_size;
+
                     data_t* dst = out_ptr + out_linear_idx;
 
                     int64_t i = 0;
@@ -189,12 +201,14 @@ void shm_all2all(
                     }
                 });
         });
+        std::atomic_thread_fence(std::memory_order_seq_cst);
         kupl_shm_fence(m_recvbuf_win);
     }
-    kupl_shm_fence(m_recvbuf_win);// Ensure all done before return
+    std::atomic_thread_fence(std::memory_order_seq_cst);
+    kupl_shm_fence(m_recvbuf_win);
 }
 
-template void shm_all2all<float>(const float*, float*, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, void *, kupl_shm_win_h);
-template void shm_all2all<uint16_t>(const uint16_t*, uint16_t*, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, void *, kupl_shm_win_h);
+template void shm_all2all<float>(const float*, float*, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, void *, kupl_shm_win_h);
+template void shm_all2all<uint16_t>(const uint16_t*, uint16_t*, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, void *, kupl_shm_win_h);
 
 }// namespace kutacc

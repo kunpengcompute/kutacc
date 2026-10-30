@@ -2014,7 +2014,10 @@ kutacc_export void trianglemultiplication(bfloat16_t* input, bfloat16_t* input_a
     int64_t c_0, int64_t c_1, int64_t c_2);
 
 /**
- * @brief Shared memory all2all distributed data exchange , only support 8 processes
+ * @brief Shared memory all2all distributed data exchange.
+ *
+ * Uses a die-pair optimized path when m_world_size==8; otherwise a generic
+ * SHM scatter/gather that supports any process count.
  *
  * @tparam data_t Element data type of buffer
  * @param [in] src             Source local data buffer
@@ -2029,6 +2032,7 @@ kutacc_export void trianglemultiplication(bfloat16_t* input, bfloat16_t* input_a
  * @param [in] output_stride0  Output tensor dim0 stride
  * @param [in] output_stride1  Output tensor dim1 stride
  * @param [in] m_rank          Current process rank
+ * @param [in] m_world_size    Total world process count
  * @param [in] m_buffer_size   Per-rank recv buffer element count
  * @param [in] m_kupl_recvbuf  Raw shared memory receive buffer ptr
  * @param [in] m_recvbuf_win   Kupl shm window handle
@@ -2036,10 +2040,13 @@ kutacc_export void trianglemultiplication(bfloat16_t* input, bfloat16_t* input_a
 template <typename data_t>
 kutacc_export void shm_all2all(const data_t* src, data_t* out_ptr, int64_t m_full, int64_t n_full, int64_t inner_size, 
     int64_t size0, int64_t size1, int64_t input_stride0, int64_t input_stride1, int64_t output_stride0, int64_t output_stride1,
-    int64_t m_rank, int64_t m_buffer_size, void * m_kupl_recvbuf, kupl_shm_win_h m_recvbuf_win);
+    int64_t m_rank, int64_t m_world_size, int64_t m_buffer_size, void * m_kupl_recvbuf, kupl_shm_win_h m_recvbuf_win);
 
 /**
- * @brief Shared memory allgather along dim1, only support 8 processes
+ * @brief Shared memory allgather along dim1.
+ *
+ * Uses a die-pair optimized path when m_world_size==8; otherwise a generic
+ * SHM gather that supports any process count.
  *
  * @tparam data_t Input buffer element type
  * @param [in] src         Local rank input data
@@ -2047,16 +2054,20 @@ kutacc_export void shm_all2all(const data_t* src, data_t* out_ptr, int64_t m_ful
  * @param [in] H_local     Local head partition size of current rank
  * @param [in] inner_dims_numel Per-element inner flattened count
  * @param [in] m_rank      Current process rank
+ * @param [in] m_world_size Total world process count
  * @param [in] m_kupl_recvbuf Shm receive buffer pointer
  * @param [in] m_recvbuf_win Kupl shm window handle
  * @return uint8_t* Pointer to gathered full output buffer
  */
 template <typename data_t>
 kutacc_export uint8_t* shm_all_gather_dim1(const data_t* src, int64_t B, int64_t H_local, int64_t inner_dims_numel, 
-    int64_t m_rank, void * m_kupl_recvbuf, kupl_shm_win_h m_recvbuf_win);
+    int64_t m_rank, int64_t m_world_size, void * m_kupl_recvbuf, kupl_shm_win_h m_recvbuf_win);
 
 /**
- * @brief Shared memory allgather along dim0, only support 8 processes
+ * @brief Shared memory allgather along dim0.
+ *
+ * Uses a die-pair optimized path when m_world_size==8; otherwise a generic
+ * SHM gather that supports any process count.
  *
  * @tparam data_t Input element type
  * @param [in] src           Local rank input buffer

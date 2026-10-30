@@ -32,9 +32,9 @@ void test_all_gather_dim1(int batch, int bucket, int size)
     }
     if(elem_size == 2){
         const uint16_t * sendbuf_u16 = reinterpret_cast<const uint16_t*>(sendbuf);
-        recvbuf = kutacc::shm_all_gather_dim1(sendbuf_u16, batch, bucket, size, global_rank, (void*)local_buffer, kupl_socket_win);
+        recvbuf = kutacc::shm_all_gather_dim1(sendbuf_u16, batch, bucket, size, global_rank, global_size, (void*)local_buffer, kupl_socket_win);
     }else{
-        recvbuf = kutacc::shm_all_gather_dim1(sendbuf, batch, bucket, size, global_rank, (void*)local_buffer, kupl_socket_win);
+        recvbuf = kutacc::shm_all_gather_dim1(sendbuf, batch, bucket, size, global_rank, global_size, (void*)local_buffer, kupl_socket_win);
     }
     scalar_t * recv_data = (scalar_t *)recvbuf;
     float max_diff = 0.0;
@@ -66,9 +66,9 @@ void test_all_gather_dim1(int batch, int bucket, int size)
     for(int i = 0; i < test_times; i++){
         if(elem_size == 2){
             const uint16_t * sendbuf_u16 = reinterpret_cast<const uint16_t*>(sendbuf);
-            recvbuf = kutacc::shm_all_gather_dim1(sendbuf_u16, batch, bucket, size, global_rank, (void*)local_buffer, kupl_socket_win);
+            recvbuf = kutacc::shm_all_gather_dim1(sendbuf_u16, batch, bucket, size, global_rank, global_size, (void*)local_buffer, kupl_socket_win);
         }else{
-            recvbuf = kutacc::shm_all_gather_dim1(sendbuf, batch, bucket, size, global_rank, (void*)local_buffer, kupl_socket_win);
+            recvbuf = kutacc::shm_all_gather_dim1(sendbuf, batch, bucket, size, global_rank, global_size, (void*)local_buffer, kupl_socket_win);
         }
     }
     uint64_t end = kutacc_now_ns();

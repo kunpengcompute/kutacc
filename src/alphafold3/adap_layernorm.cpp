@@ -1,3 +1,4 @@
+#include "utils/aligned_malloc.h"
 #include "kutacc.h"
 #include "common.h"
 #include "math/fast_exp.h"
@@ -257,8 +258,10 @@ void adpln_merge_bf16(float* x, bfloat16_t* s_c, bfloat16_t* s_w, float* s_b, bf
     int D_block = 128;
     int task_m = (M%M_block)?(M/M_block+1):(M/M_block);
     int task_d = (D%D_block)?(D/D_block+1):(D/D_block);
-    alignas(64) float o1[M*D];
-    alignas(64) float o2[M*D];
+    auto o1_storage = kutacc::malloc_buffer<float>(int64_t{M}*D);
+    float* o1 = o1_storage.get();
+    auto o2_storage = kutacc::malloc_buffer<float>(int64_t{M}*D);
+    float* o2 = o2_storage.get();
     kutacc::parallel_for(0, task_m * task_d, 1, [&](int64_t start, int64_t end){
         for(int task_idx = start; task_idx < end; task_idx ++)
         {

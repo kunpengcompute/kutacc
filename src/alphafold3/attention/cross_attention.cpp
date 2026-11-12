@@ -1,3 +1,4 @@
+#include "utils/aligned_malloc.h"
 #include "../linear.h"
 #include "activation/sigmoid.h"
 #include "math/fast_exp.h"
@@ -76,8 +77,8 @@ void cross_attention_out_pack(bfloat16_t* weighted_avg, bfloat16_t* gate, bfloat
                         
                     }
                 }
-                SME_OFF();
             }
+            SME_OFF();
         });
     }
     else{
@@ -277,6 +278,14 @@ void cross_flash_attn_mask_bias_bf16_hd32(int B, int N_a, int H, int Nq, int Nkv
     int nblock_kv = (Nkv%block_kv)?(Nkv/block_kv+1):(Nkv/block_kv);
 
     kutacc::parallel_for(0, B * H * nblock_q , 1, [&](int64_t start, int64_t end){
+        auto k_block_storage = kutacc::malloc_buffer<bfloat16_t>(int64_t{block_kv}*D);
+        bfloat16_t* k_block = k_block_storage.get();
+        auto v_block_storage = kutacc::malloc_buffer<bfloat16_t>(int64_t{block_kv}*D);
+        bfloat16_t* v_block = v_block_storage.get();
+        auto o_block_storage = kutacc::malloc_buffer<float>(int64_t{block_q}*D);
+        float* o_block = o_block_storage.get();
+        auto q_block_storage = kutacc::malloc_buffer<bfloat16_t>(int64_t{block_q}*D);
+        bfloat16_t* q_block = q_block_storage.get();
         for(int task_idx = start; task_idx < end; task_idx ++)
         {
             int bidx = task_idx / (H * nblock_q);
@@ -288,21 +297,18 @@ void cross_flash_attn_mask_bias_bf16_hd32(int B, int N_a, int H, int Nq, int Nkv
 
             int block_size_q = (qidx<nblock_q-1)?block_q:(Nq-block_q*qidx);
             // memset(o_h_i, 0, block_size_q*D*sizeof(bfloat16_t));
-            alignas(64) float l[block_size_q];
+            alignas(64) float l[block_q];
             memset(l, 0, sizeof(l));
-            alignas(64) float m_last[block_size_q];
+            alignas(64) float m_last[block_q];
             std::fill(m_last, m_last+block_size_q, m_min);
-            alignas(64) float m[block_size_q];
+            alignas(64) float m[block_q];
             std::fill(m, m+block_size_q, m_min);                
             alignas(64) bfloat16_t P[block_q*block_kv];
-            alignas(64) float exp_diff[block_size_q];
+            alignas(64) float exp_diff[block_q];
 
-            alignas(64) bfloat16_t k_block[block_kv*D];
-            alignas(64) bfloat16_t v_block[block_kv*D];
-            alignas(64) float o_block[block_size_q*D];
-            memset(o_block, 0, sizeof(o_block)); 
+            memset(o_block, 0, static_cast<size_t>(block_size_q) * D * sizeof(float));
             //fill q, D should be even, block_size_q 整除SVL_fp32
-            alignas(64) bfloat16_t q_block[block_size_q*D];
+
             for(int row = 0; row < block_size_q; row += SVL_fp32)
             {
                 for(int col = 0; col < D; col += 2)

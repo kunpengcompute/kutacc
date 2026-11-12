@@ -1,3 +1,4 @@
+#include "utils/aligned_malloc.h"
 #include "kutacc.h"
 #include "common.h"
 #include "math/fast_exp.h"
@@ -239,9 +240,11 @@ void linear_nobias(bfloat16_t* xptr, bfloat16_t* wptr, T* resultptr, int bucket,
     const int row_block_size = ROW_BLOCK_SIZE;
     const int col_block_size = COL_BLOCK_SIZE;
     bfloat16_t* data_ptr = xptr;
-    alignas(64) bfloat16_t pack_A[bucket * hidden_size];
+    std::unique_ptr<bfloat16_t[], kutacc::AlignedMallocDeleter<bfloat16_t>> pack_A_storage;
+    if (!x_packed) pack_A_storage = kutacc::malloc_buffer<bfloat16_t>(int64_t{bucket} * hidden_size);
+    bfloat16_t* pack_A = pack_A_storage.get();
     if(x_packed == false){
-        std::fill(pack_A, pack_A + bucket * hidden_size, static_cast<bfloat16_t>(0.0f));
+        std::fill(pack_A, pack_A + int64_t{bucket} * hidden_size, static_cast<bfloat16_t>(0.0f));
         pack_left_task_2vl_2vl_bf16(xptr, pack_A, bucket, hidden_size);
         data_ptr = pack_A;
     }
@@ -282,7 +285,7 @@ void linear_bias_sigmoid(bfloat16_t* single_cond_ptr, bfloat16_t* wptr, float* b
     const int row_block_size = ROW_BLOCK_SIZE;
     const int col_block_size = COL_BLOCK_SIZE;
     bfloat16_t* pack_A = static_cast<bfloat16_t*>(aligned_alloc(64, sizeof(bfloat16_t) *  static_cast<unsigned long>(bucket * hidden_size)));
-    std::fill(pack_A, pack_A + bucket * hidden_size, static_cast<bfloat16_t>(0.0f));
+    std::fill(pack_A, pack_A + int64_t{bucket} * hidden_size, static_cast<bfloat16_t>(0.0f));
     pack_left_task_2vl_2vl_bf16(single_cond_ptr, pack_A, bucket, hidden_size);
     int max_threads = kutacc::get_thread_num();
     int task_num = (bucket * num_channels) / (row_block_size * col_block_size);

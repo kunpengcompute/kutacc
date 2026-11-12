@@ -1,3 +1,4 @@
+#include "utils/aligned_malloc.h"
 #include "../linear.h"
 #include "activation/sigmoid.h"
 #include "math/fast_exp.h"
@@ -445,6 +446,14 @@ void grid_flash_attn_mask_bias_bf16_hd16(int B, int H, int N, int D, bfloat16_t*
 
     kutacc::parallel_for(0, max_threads, 1, [&](int64_t start, int64_t end)
     {
+        auto o_block_storage = kutacc::malloc_buffer<float>(int64_t{block_q}*D);
+        float* o_block = o_block_storage.get();
+        auto k_block_storage = kutacc::malloc_buffer<bfloat16_t>(int64_t{block_kv_grid}*D);
+        bfloat16_t* k_block = k_block_storage.get();
+        auto v_block_storage = kutacc::malloc_buffer<bfloat16_t>(int64_t{block_kv_grid}*D);
+        bfloat16_t* v_block = v_block_storage.get();
+        auto q_block_storage = kutacc::malloc_buffer<bfloat16_t>(int64_t{block_q}*D);
+        bfloat16_t* q_block = q_block_storage.get();
         SME_ON(); 
         int tid = kutacc::get_thread_id();
         int task_num_i, start_idx, end_idx;
@@ -466,11 +475,9 @@ void grid_flash_attn_mask_bias_bf16_hd16(int B, int H, int N, int D, bfloat16_t*
         alignas(64) float m[block_q];              
         alignas(64) float S[block_q*block_kv_grid];
         alignas(64) float exp_diff[block_q];
-        alignas(64) float o_block[block_q*D];
+
         alignas(64) bfloat16_t P[block_q*block_kv_grid];
-        alignas(64) bfloat16_t k_block[block_kv_grid*D];
-        alignas(64) bfloat16_t v_block[block_kv_grid*D];
-        alignas(64) bfloat16_t q_block[block_q*D];
+
         svbool_t ptrue = svptrue_b16();
         svfloat32_t scal_vec = svdup_f32(scale);
         svfloat32_t zero_vec_f32 = svdup_f32(0.0f);
@@ -487,7 +494,7 @@ void grid_flash_attn_mask_bias_bf16_hd16(int B, int H, int N, int D, bfloat16_t*
                 memset(l, 0, sizeof(l));
                 std::fill(m_last, m_last+block_size_q, m_min);
                 std::fill(m, m+block_size_q, m_min);                
-                memset(o_block, 0, sizeof(o_block)); 
+                memset(o_block, 0, size_t{block_q} * D * sizeof(float));
                 kutacc::pack_qk_hd16(q_h_i, q_block, block_size_q);
                 for(int kvidx = 0; kvidx < nblock_kv; ++kvidx)
                 {
@@ -725,6 +732,14 @@ void grid_flash_attn_mask_bias_bf16_hd32(int B, int H, int N, int D, bfloat16_t*
 
     kutacc::parallel_for(0, max_threads, 1, [&](int64_t start, int64_t end)
     {
+        auto o_block_storage = kutacc::malloc_buffer<float>(int64_t{block_q}*D);
+        float* o_block = o_block_storage.get();
+        auto k_block_storage = kutacc::malloc_buffer<bfloat16_t>(int64_t{block_kv_grid}*D);
+        bfloat16_t* k_block = k_block_storage.get();
+        auto v_block_storage = kutacc::malloc_buffer<bfloat16_t>(int64_t{block_kv_grid}*D);
+        bfloat16_t* v_block = v_block_storage.get();
+        auto q_block_storage = kutacc::malloc_buffer<bfloat16_t>(int64_t{block_q}*D);
+        bfloat16_t* q_block = q_block_storage.get();
         SME_ON(); 
         int tid = kutacc::get_thread_id();
         int task_num_i, start_idx, end_idx;
@@ -746,12 +761,10 @@ void grid_flash_attn_mask_bias_bf16_hd32(int B, int H, int N, int D, bfloat16_t*
         alignas(64) float m[block_q];              
         alignas(64) float S[block_q*block_kv_grid];
         alignas(64) float exp_diff[block_q];
-        alignas(64) float o_block[block_q*D];
+
         // alignas(64) float bias_block[block_q*N];
         alignas(64) bfloat16_t P[block_q*block_kv_grid];
-        alignas(64) bfloat16_t k_block[block_kv_grid*D];
-        alignas(64) bfloat16_t v_block[block_kv_grid*D];
-        alignas(64) bfloat16_t q_block[block_q*D];
+
         svbool_t ptrue = svptrue_b16();
         svfloat32_t scal_vec = svdup_f32(scale);
         svfloat32_t zero_vec_f32 = svdup_f32(0.0f);
@@ -771,7 +784,7 @@ void grid_flash_attn_mask_bias_bf16_hd32(int B, int H, int N, int D, bfloat16_t*
             memset(l, 0, sizeof(l));
             std::fill(m_last, m_last+block_size_q, m_min);
             std::fill(m, m+block_size_q, m_min);                
-            memset(o_block, 0, sizeof(o_block)); 
+            memset(o_block, 0, size_t{block_q} * D * sizeof(float));
             kutacc::pack_qk_hd32(q_h_i, q_block, block_size_q);
             for(int kvidx = 0; kvidx < nblock_kv; ++kvidx)
             {

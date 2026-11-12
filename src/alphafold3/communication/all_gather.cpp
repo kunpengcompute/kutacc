@@ -4,8 +4,10 @@
 #include <string.h>
 #include <arm_sve.h>
 #include <iostream>
+#include <vector>
 #include "kutacc.h"
 namespace kutacc{
+
 // 优化的BF16 allgather函数
 void shm_allgather_comm8v2_optimized_bf16(
     void *sendbuf, 
@@ -323,6 +325,42 @@ void parallel_vectorized_copy_optimized_fp32(const float* src, float* dst, int64
         }
     });
 }
+
+// Generic SHM all-gather (any W): PULL peers' already-written local slots into
+// our buffer. Callers must fence after writing the local slot before this.
+// Pull avoids cross-rank write races on the same destination window that the
+// previous push path exposed under large W×payload (e.g. 740aa NP=16).
+void shm_allgather_general(
+    int64_t local_elements,
+    size_t elem_size,
+    int64_t rank,
+    int64_t world_size,
+    uint8_t** buffers,
+    kupl_shm_win_h m_recvbuf_win,
+    const void* /*my_send_region*/
+) {
+    const size_t bytes = static_cast<size_t>(local_elements) * elem_size;
+    uint8_t* local = buffers[rank];
+    for (int64_t p = 0; p < world_size; ++p) {
+        if (p == rank) continue;
+        const size_t off = static_cast<size_t>(p) * bytes;
+        const void* src = buffers[p] + off;
+        void* dst = local + off;
+        if (elem_size == 2) {
+            kutacc::parallel_vectorized_copy_optimized_bf16(
+                reinterpret_cast<const uint16_t*>(src),
+                reinterpret_cast<uint16_t*>(dst),
+                local_elements);
+        } else {
+            kutacc::parallel_vectorized_copy_optimized_fp32(
+                reinterpret_cast<const float*>(src),
+                reinterpret_cast<float*>(dst),
+                local_elements);
+        }
+    }
+    kupl_shm_fence(m_recvbuf_win);
+}
+
 template <typename data_t>
 uint8_t* shm_all_gather(
     const data_t* src, 
@@ -345,21 +383,29 @@ uint8_t* shm_all_gather(
         kutacc::parallel_vectorized_copy_optimized_fp32((float*)src, dst, local_elements);
     }
 
-    uint8_t* buffers[8];
-    for (int i = 0; i < 8; ++i) {
-        kupl_shm_win_query(m_recvbuf_win, i, (void**)&buffers[i]);
+    std::vector<uint8_t*> buffers(static_cast<size_t>(world_size));
+    for (int64_t i = 0; i < world_size; ++i) {
+        kupl_shm_win_query(m_recvbuf_win, static_cast<int>(i), (void**)&buffers[i]);
     }
     kupl_shm_fence(m_recvbuf_win);
-    if(sizeof(data_t) == 2){
-        kutacc::shm_allgather_comm8v2_optimized_bf16(
-            my_send_region, local_elements, shared_buffer, total_elements,
-            m_rank, buffers, m_recvbuf_win
-        );
-    }else{
-        kutacc::shm_allgather_comm8v2_optimized_fp32(
-            my_send_region, local_elements, shared_buffer, total_elements,
-            m_rank, buffers, m_recvbuf_win
-        );
+
+    // W==8: die-pair optimized path; otherwise generic pull.
+    if (world_size == 8) {
+        if(sizeof(data_t) == 2){
+            kutacc::shm_allgather_comm8v2_optimized_bf16(
+                my_send_region, local_elements, shared_buffer, total_elements,
+                m_rank, buffers.data(), m_recvbuf_win
+            );
+        }else{
+            kutacc::shm_allgather_comm8v2_optimized_fp32(
+                my_send_region, local_elements, shared_buffer, total_elements,
+                m_rank, buffers.data(), m_recvbuf_win
+            );
+        }
+    } else if (world_size > 1) {
+        kutacc::shm_allgather_general(
+            local_elements, elem_size, m_rank, world_size,
+            buffers.data(), m_recvbuf_win, my_send_region);
     }
     return buffers[m_rank];
 }

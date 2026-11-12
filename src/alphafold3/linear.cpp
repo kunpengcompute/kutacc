@@ -736,4 +736,74 @@ void bf16_packed_gemm_singlethread(int64_t m, int64_t n, int64_t k, MatrixTiling
         output_ptr, bias, row_bias);
 }
 
+void bf16_gemm_pack_arbitrary_threads(int64_t r, int64_t c, int64_t split_r, int64_t split_c,
+    bfloat16_t *input_ptr, bfloat16_t *output_ptr)
+{
+    const int64_t num_threads = kutacc::get_thread_num();
+    const int64_t blocks = (r / split_r) * (c / split_c);
+    if (num_threads < blocks) {
+        kutacc::parallel_for(0, blocks, 1, [&](int64_t start, int64_t end) {
+            for (int64_t task = start; task < end; ++task) {
+                gemm_pack_thread_task<bfloat16_t, false>(task, r, c, split_r, split_c,
+                    input_ptr, output_ptr, nullptr, c, blocks);
+            }
+        });
+    } else {
+        kutacc::parallel_for(0, num_threads, 1, [&](int64_t, int64_t) {
+            gemm_pack_thread_task<bfloat16_t, false>(kutacc::get_thread_id(), r, c, split_r, split_c,
+                input_ptr, output_ptr, nullptr, c, num_threads);
+        });
+    }
+}
+
+void bf16_packed_gemm_arbitrary_threads(int64_t m, int64_t n, int64_t k, MatrixTilingBlock t, bfloat16_t *act_ptr, bfloat16_t *weight_ptr,
+    bfloat16_t *output_ptr, bfloat16_t *tmpc, float *bias, bool row_bias)
+{
+    int64_t tile_m = std::get<0>(t);
+    int64_t tile_n = std::get<1>(t);
+    int64_t tile_k = std::get<2>(t);
+    int64_t blocks_in_m = m / tile_m;
+    int64_t blocks_in_n = n / tile_n;
+    int64_t blocks_in_k = k / tile_k;
+    const int64_t tasks = blocks_in_m * blocks_in_n * blocks_in_k;
+    int64_t num_threads = kutacc::get_thread_num();
+    auto run_tile = [&](int64_t task) {
+        auto [idx_m, idx_n, idx_k] = get_idxs(task, blocks_in_m, blocks_in_n, blocks_in_k);
+        bfloat16_t *a = act_ptr + idx_m * tile_m * k + idx_k * tile_m * tile_k;
+        bfloat16_t *b = weight_ptr + idx_n * tile_n * k + idx_k * tile_n * tile_k;
+        const int64_t offset = idx_m * tile_m * n + idx_n * tile_n;
+        float *sub_bias = bias ? bias + (row_bias ? idx_n * tile_n : idx_m * tile_m) : nullptr;
+        if (blocks_in_k == 1) {
+            bf16_packed_gemm_alpha1_beta0(tile_m, tile_n, n, tile_k,
+                a, b, output_ptr + offset, sub_bias, row_bias);
+        } else {
+            bf16_packed_gemm_alpha1_beta0(tile_m, tile_n, n, tile_k,
+                a, b, tmpc + n * m * idx_k + offset, nullptr, row_bias);
+        }
+    };
+    if (blocks_in_k == 1 && tasks <= num_threads) {
+        kutacc::parallel_for(0, num_threads, 1, [&](int64_t start, int64_t end) {
+            for (int64_t task = start; task < std::min(end, tasks); ++task) run_tile(task);
+        });
+    } else {
+        kutacc::parallel_for(0, tasks, 1, [&](int64_t start, int64_t end) {
+            for (int64_t task = start; task < end; ++task) run_tile(task);
+        });
+    }
+    if (blocks_in_k > 1) {
+        kutacc::parallel_for(0, (m * n + 31) / 32, 1, [&](int64_t begin_block, int64_t end_block) {
+            const int64_t start = begin_block * 32;
+            const int64_t end = std::min(end_block * 32, m * n);
+            reduce_for_kblocks(m, n, blocks_in_k, output_ptr, tmpc, start, end);
+            if (bias) {
+                for (int64_t i = start; i < end; ++i) {
+                    output_ptr[i] = static_cast<bfloat16_t>(static_cast<float>(output_ptr[i])
+                        + bias[row_bias ? i % n : i / n]);
+                }
+            }
+        });
+    }
+
+}
+
 }//namespace kutacc

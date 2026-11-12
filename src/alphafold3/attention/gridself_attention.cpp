@@ -1,3 +1,4 @@
+#include "utils/aligned_malloc.h"
 #include "../linear.h"
 #include "activation/sigmoid.h"
 #include "math/fast_exp.h"
@@ -267,9 +268,9 @@ void gridself_attention_out(bfloat16_t* weights, bfloat16_t* weighted_avg, bfloa
     std::unique_ptr<bfloat16_t[]> pack_a(new bfloat16_t[batch * seq_len * nchannels]);
     std::unique_ptr<bfloat16_t[]> pack_b(new bfloat16_t[nchannels * nchannels]);
     std::unique_ptr<__bf16[]> tmpc(new __bf16[batch * seq_len * nchannels]);
-    kutacc::bf16_gemm_pack(batch * seq_len, nchannels, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)weighted_avg, pack_a.get());
-    kutacc::bf16_gemm_pack(nchannels, nchannels, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)weights, pack_b.get());
-    kutacc::bf16_packed_gemm(batch * seq_len, nchannels, nchannels, tiling, 
+    kutacc::bf16_gemm_pack_arbitrary_threads(batch * seq_len, nchannels, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)weighted_avg, pack_a.get());
+    kutacc::bf16_gemm_pack_arbitrary_threads(nchannels, nchannels, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)weights, pack_b.get());
+    kutacc::bf16_packed_gemm_arbitrary_threads(batch * seq_len, nchannels, nchannels, tiling,
         pack_a.get(),
         pack_b.get(),
         (__bf16 *)out,
@@ -283,9 +284,9 @@ void gridself_attention_bias_linear(bfloat16_t* input, bfloat16_t* bias_weight, 
     std::unique_ptr<bfloat16_t[]> pack_a(new bfloat16_t[batch * seq_len * nchannels]);
     std::unique_ptr<bfloat16_t[]> pack_b(new bfloat16_t[nchannels * nheads]);
     std::unique_ptr<__bf16[]> tmpc(new __bf16[batch * seq_len * nheads]);
-    kutacc::bf16_gemm_pack(batch * seq_len, nchannels, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)input, pack_a.get());
-    kutacc::bf16_gemm_pack(nheads, nchannels, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)bias_weight, pack_b.get());
-    kutacc::bf16_packed_gemm(batch * seq_len, nheads, nchannels, tiling, 
+    kutacc::bf16_gemm_pack_arbitrary_threads(batch * seq_len, nchannels, std::get<0>(tiling), std::get<2>(tiling), (__bf16 *)input, pack_a.get());
+    kutacc::bf16_gemm_pack_arbitrary_threads(nheads, nchannels, std::get<1>(tiling), std::get<2>(tiling), (__bf16 *)bias_weight, pack_b.get());
+    kutacc::bf16_packed_gemm_arbitrary_threads(batch * seq_len, nheads, nchannels, tiling,
         pack_a.get(),
         pack_b.get(),
         (__bf16 *)bias,
@@ -300,40 +301,21 @@ bfloat16_t* pbias_proj, bfloat16_t* q, bfloat16_t* k, bfloat16_t* v, bfloat16_t*
     const int row_block_size = ROW_BLOCK_SIZE;
     const int col_block_size = COL_BLOCK_SIZE;
     int max_threads = kutacc::get_thread_num();
-    int avg_threads = max_threads / 4;
     int task_num = (M * N) / (row_block_size * col_block_size);
-    int avg_task = task_num / avg_threads;
-    int busy_thread = task_num - avg_task * avg_threads;
-    int row_task_num = N / col_block_size; 
-	kutacc::parallel_for(0, max_threads, 1, [&](int64_t start, int64_t end)
-    {
-        int tid = kutacc::get_thread_id();
-        int tid_local = tid % avg_threads;
-        int task_num, start_idx;
-        if(tid_local < busy_thread)
-        {
-            task_num = avg_task+1;
-            start_idx = tid_local*task_num;
-        }
-        else
-        {
-            task_num = avg_task;
-            start_idx = busy_thread*(task_num+1)+(tid_local-busy_thread)*task_num;
-        }
-        for(int task_idx = start_idx; task_idx < start_idx + task_num; task_idx++ )
-        {
+    int row_task_num = N / col_block_size;
+    auto run_task = [&](int projection_idx, int task_idx) {
             int row_index = (task_idx / row_task_num) * row_block_size;
             int col_index = (task_idx % row_task_num) * col_block_size;
             bfloat16_t *block_part_x_base = pack_x + row_index * K ;
-            if(tid < avg_threads){
+            if(projection_idx == 0){
                 kutacc::bgemm_4vl_1vl_bf16_transpose_trans_impl(block_part_x_base, q_proj + col_index * K, q, \
                 row_block_size, col_block_size, K, row_index, col_index, batch, seq_len, nheads, head_size, trans);
             }
-            else if(tid < 2 * avg_threads){
+            else if(projection_idx == 1){
                 kutacc::bgemm_4vl_1vl_bf16_transpose_trans_impl(block_part_x_base, k_proj + col_index * K, k, \
                 row_block_size, col_block_size, K, row_index, col_index, batch, seq_len, nheads, head_size, trans);
             }
-            else if(tid < 3 * avg_threads){
+            else if(projection_idx == 2){
                 kutacc::bgemm_4vl_1vl_bf16_transpose_trans_impl(block_part_x_base, v_proj + col_index * K, v, \
                 row_block_size, col_block_size, K, row_index, col_index, batch, seq_len, nheads, head_size, trans);
             }
@@ -341,8 +323,40 @@ bfloat16_t* pbias_proj, bfloat16_t* q, bfloat16_t* k, bfloat16_t* v, bfloat16_t*
                 kutacc::bgemm_4vl_1vl_bf16_trans_impl(block_part_x_base, g_proj + col_index * K, g, \
                 row_block_size, col_block_size, K, N, row_index, col_index, batch, seq_len, trans);
             }
-        }
-    });
+    };
+
+    if(max_threads >= 4 && max_threads % 4 == 0)
+    {
+        int threads_per_projection = max_threads / 4;
+        kutacc::parallel_for(0, max_threads, 1, [&](int64_t start, int64_t end)
+        {
+            for(int64_t tid = start; tid < end; ++tid)
+            {
+                int projection_idx = tid / threads_per_projection;
+                int tid_local = tid % threads_per_projection;
+                int avg_task = task_num / threads_per_projection;
+                int busy_threads = task_num % threads_per_projection;
+                int start_idx = tid_local < busy_threads
+                    ? tid_local * (avg_task + 1)
+                    : busy_threads * (avg_task + 1) + (tid_local - busy_threads) * avg_task;
+                int end_idx = start_idx + avg_task + (tid_local < busy_threads);
+                for(int task_idx = start_idx; task_idx < end_idx; ++task_idx)
+                {
+                    run_task(projection_idx, task_idx);
+                }
+            }
+        });
+    }
+    else
+    {
+        kutacc::parallel_for(0, 4LL * task_num, 1, [&](int64_t start, int64_t end)
+        {
+            for(int64_t task = start; task < end; ++task)
+            {
+                run_task(task / task_num, task % task_num);
+            }
+        });
+    }
 }
 
 
@@ -432,6 +446,14 @@ void grid_flash_attn_mask_bias_bf16_hd16(int B, int H, int N, int D, bfloat16_t*
 
     kutacc::parallel_for(0, max_threads, 1, [&](int64_t start, int64_t end)
     {
+        auto o_block_storage = kutacc::malloc_buffer<float>(int64_t{block_q}*D);
+        float* o_block = o_block_storage.get();
+        auto k_block_storage = kutacc::malloc_buffer<bfloat16_t>(int64_t{block_kv_grid}*D);
+        bfloat16_t* k_block = k_block_storage.get();
+        auto v_block_storage = kutacc::malloc_buffer<bfloat16_t>(int64_t{block_kv_grid}*D);
+        bfloat16_t* v_block = v_block_storage.get();
+        auto q_block_storage = kutacc::malloc_buffer<bfloat16_t>(int64_t{block_q}*D);
+        bfloat16_t* q_block = q_block_storage.get();
         SME_ON(); 
         int tid = kutacc::get_thread_id();
         int task_num_i, start_idx, end_idx;
@@ -453,11 +475,9 @@ void grid_flash_attn_mask_bias_bf16_hd16(int B, int H, int N, int D, bfloat16_t*
         alignas(64) float m[block_q];              
         alignas(64) float S[block_q*block_kv_grid];
         alignas(64) float exp_diff[block_q];
-        alignas(64) float o_block[block_q*D];
+
         alignas(64) bfloat16_t P[block_q*block_kv_grid];
-        alignas(64) bfloat16_t k_block[block_kv_grid*D];
-        alignas(64) bfloat16_t v_block[block_kv_grid*D];
-        alignas(64) bfloat16_t q_block[block_q*D];
+
         svbool_t ptrue = svptrue_b16();
         svfloat32_t scal_vec = svdup_f32(scale);
         svfloat32_t zero_vec_f32 = svdup_f32(0.0f);
@@ -474,7 +494,7 @@ void grid_flash_attn_mask_bias_bf16_hd16(int B, int H, int N, int D, bfloat16_t*
                 memset(l, 0, sizeof(l));
                 std::fill(m_last, m_last+block_size_q, m_min);
                 std::fill(m, m+block_size_q, m_min);                
-                memset(o_block, 0, sizeof(o_block)); 
+                memset(o_block, 0, size_t{block_q} * D * sizeof(float));
                 kutacc::pack_qk_hd16(q_h_i, q_block, block_size_q);
                 for(int kvidx = 0; kvidx < nblock_kv; ++kvidx)
                 {
@@ -712,6 +732,14 @@ void grid_flash_attn_mask_bias_bf16_hd32(int B, int H, int N, int D, bfloat16_t*
 
     kutacc::parallel_for(0, max_threads, 1, [&](int64_t start, int64_t end)
     {
+        auto o_block_storage = kutacc::malloc_buffer<float>(int64_t{block_q}*D);
+        float* o_block = o_block_storage.get();
+        auto k_block_storage = kutacc::malloc_buffer<bfloat16_t>(int64_t{block_kv_grid}*D);
+        bfloat16_t* k_block = k_block_storage.get();
+        auto v_block_storage = kutacc::malloc_buffer<bfloat16_t>(int64_t{block_kv_grid}*D);
+        bfloat16_t* v_block = v_block_storage.get();
+        auto q_block_storage = kutacc::malloc_buffer<bfloat16_t>(int64_t{block_q}*D);
+        bfloat16_t* q_block = q_block_storage.get();
         SME_ON(); 
         int tid = kutacc::get_thread_id();
         int task_num_i, start_idx, end_idx;
@@ -733,12 +761,10 @@ void grid_flash_attn_mask_bias_bf16_hd32(int B, int H, int N, int D, bfloat16_t*
         alignas(64) float m[block_q];              
         alignas(64) float S[block_q*block_kv_grid];
         alignas(64) float exp_diff[block_q];
-        alignas(64) float o_block[block_q*D];
+
         // alignas(64) float bias_block[block_q*N];
         alignas(64) bfloat16_t P[block_q*block_kv_grid];
-        alignas(64) bfloat16_t k_block[block_kv_grid*D];
-        alignas(64) bfloat16_t v_block[block_kv_grid*D];
-        alignas(64) bfloat16_t q_block[block_q*D];
+
         svbool_t ptrue = svptrue_b16();
         svfloat32_t scal_vec = svdup_f32(scale);
         svfloat32_t zero_vec_f32 = svdup_f32(0.0f);
@@ -758,7 +784,7 @@ void grid_flash_attn_mask_bias_bf16_hd32(int B, int H, int N, int D, bfloat16_t*
             memset(l, 0, sizeof(l));
             std::fill(m_last, m_last+block_size_q, m_min);
             std::fill(m, m+block_size_q, m_min);                
-            memset(o_block, 0, sizeof(o_block)); 
+            memset(o_block, 0, size_t{block_q} * D * sizeof(float));
             kutacc::pack_qk_hd32(q_h_i, q_block, block_size_q);
             for(int kvidx = 0; kvidx < nblock_kv; ++kvidx)
             {

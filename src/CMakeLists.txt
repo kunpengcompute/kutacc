@@ -107,7 +107,10 @@ target_link_libraries(${LIBKUTACC_NAME}
     /usr/lib64/libibverbs/libirdma-rdmav34.so)
 
 
-set_target_properties(${LIBKUTACC_NAME} PROPERTIES VERSION 26.2.0)
+set_target_properties(${LIBKUTACC_NAME} PROPERTIES
+    VERSION 26.2.0
+    BUILD_RPATH "/usr/lib64/libibverbs"
+    INSTALL_RPATH "/usr/lib64/libibverbs")
 
 #Install
 libkutacc_header_install()
